@@ -1,0 +1,35 @@
+﻿ ADUSent
+ 	TagName DataType NodeId
+ 		ProcessOrder String ns=2;id=ProcessOrder_String
+ 		DateTime DateTime ns=2;id=DateTime_DateTime
+ 		MaterialCode Int32 ns=2;id=MaterialCode_Int32
+ 		Quantity Double ns=2;id=Quantity_Double
+ 		QuantityUOM String ns=2;id=QuantityUOM_String
+ 		Lot Int32 ns=2;id=Lot_Int32
+ 		PlantCode String ns=2;id=PlantCode_String
+ 		DeviceIdentifier String ns=2;id=DeviceIdentifier_String
+ 		VesselID String ns=2;id=VesselID_String
+ 		ItemMaterial Int32 ns=2;id=ItemMaterial_Int32
+ 		BatchStepID Int32 ns=2;id=BatchStepI
+ 		NewDosingRequest Boolean ns=2;id=NewDosingRequest_Boolean
+ 		ConsumptionAccepted Boolean ns=2;id=ConsumptionAccepted_Boolean
+ 		ProcessOrderDataSent Boolean ns=2;id=ProcessOrderDataSent_Boolean
+ 		Watchdog Boolean ns=2;id=Watchdog_Boolean
+ 
+ ADUReceived
+ 	TagName DataType NodeId
+ 		ProcessOrder String ns=2;id=ProcessOrder_String
+ 		DateTime DateTime ns=2;id=DateTime_DateTime
+ 		MaterialCode Int32 ns=2;id=MaterialCode_Int32
+ 		ActualQuantity Double ns=2;id=ActualQuantity_Double
+ 		QuantityUOM String ns=2;id=QuantityUOM_String
+ 		Lot Int32 ns=2;id=Lot_Int32
+ 		PlantCode String ns=2;id=PlantCode_String
+ 		DeviceIdentifier String ns=2;id=DeviceIdentifier_String
+ 		VesselID String ns=2;id=VesselID_String
+ 		ItemMaterial Int32 ns=2;id=ItemMaterial_Int32
+ 		BatchStepID Int32 ns=2;id=BatchStepID_Int32
+ 		ReadyForNewDosing Boolean ns=2;id=ReadyForNewDosing_Boolean
+ 		DosingCompleted  Boolean ns=2;id=DosingCompleted_Boolean
+ 		RequestAccepted  Boolean ns=2;id=RequestAccepted_Boolean
+		Watchdog Boolean ns=2;id=Watchdog_Boolean
