@@ -86,8 +86,8 @@ namespace SanTint.Opc.Server
                 received.IsComplete = false;
                 _dbHelper.AddADUReceived(received);
 
-                //TODO:修改控制位
-
+                //添加到队列,定时任务通知客户端
+                QueueHelper.AddADUReceived(received);
                 queryResult.IsSuccess = true;
                 var str = JsonConvert.SerializeObject(queryResult);
                 httpReponseMessage.Content = new StringContent(str);

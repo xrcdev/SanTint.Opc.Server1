@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="OPC\OpcServer.cs" />
     <Compile Include="OPC\OPCUAServer.Constants.cs" />
+    <Compile Include="QueueHelper.cs" />
     <Compile Include="WebApi\CrosHandler.cs" />
     <Compile Include="DBHelper.cs" />
     <Compile Include="WebApi\HttpServer.cs" />

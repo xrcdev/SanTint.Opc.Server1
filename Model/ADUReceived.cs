@@ -89,6 +89,7 @@ namespace SanTint.Opc.Server.Model
         /// 是否成功反馈给客户系统
         /// </summary>
         public bool IsComplete { get; set; }
+        public DateTime CompleteTime { get; set; }
         #endregion
     }
 

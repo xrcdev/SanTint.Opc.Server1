@@ -65,6 +65,8 @@ namespace SanTint.Opc.Server.Model
 
         #region 控制位
         public bool NewDosingRequest { get; set; }
+        //public bool RequestAccepted { get; set; }
+        //public bool ReadyForNewDosing { get; set; }
         public bool ConsumptionAccepted { get; set; }
         public bool ProcessOrderDataSent { get; set; }
         #endregion
