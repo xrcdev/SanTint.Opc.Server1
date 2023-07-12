@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<opc:ModelDesign
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+xmlns:opc="http://opcfoundation.org/UA/ModelDesign.xsd"
+xmlns:ua="http://opcfoundation.org/UA/"
+xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+xmlns="http://opcfoundation.org/OPCUAServer"
+TargetNamespace="http://opcfoundation.org/OPCUAServer">
+
+	<opc:Namespaces>
+		<opc:Namespace Name="OpcUa" Prefix="Opc.Ua" XmlNamespace="http://opcfoundation.org/UA/2008/02/Types.xsd">http://opcfoundation.org/UA/</opc:Namespace>
+		<opc:Namespace Name="SanTintOPCUAServer" Prefix="OPCUAServer">http://opcfoundation.org/OPCUAServer</opc:Namespace>
+	</opc:Namespaces>
+
+	<opc:ObjectType SymbolicName="ADUSent" BaseType="ua:BaseObjectType">
+		<opc:Description>ADU Sent Infomation Model.</opc:Description>
+		<opc:Children>
+			<opc:Variable SymbolicName="ProcessOrder" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="DateTime" DataType="ua:DateTime"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="MaterialCode" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="Quantity" DataType="ua:Double" ValueRank="Scalar" TypeDefinition="ua:AnalogItemType" AccessLevel="Read" />
+			<opc:Variable SymbolicName="QuantityUOM" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="Lot" DataType="ua:Int32"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="PlantCode" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="DeviceIdentifier" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="VesselID" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="ItemMaterial" DataType="ua:Int32"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="BatchStepID" DataType="ua:Int32"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="NewDosingRequest" DataType="ua:Boolean"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="ProcessOrderDataSent" DataType="ua:Boolean"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="RequestAccepted" DataType="ua:Boolean"  AccessLevel="Write" />
+			<opc:Variable SymbolicName="ReadyForNewDosing" DataType="ua:Boolean"  AccessLevel="Write" />
+			<opc:Variable SymbolicName="ConsumptionAccepted" DataType="ua:Boolean"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="DosingCompleted" DataType="ua:Boolean"  AccessLevel="Write" />
+			<opc:Variable SymbolicName="Watchdog" DataType="ua:Boolean"  AccessLevel="Read" />
+		</opc:Children>
+	</opc:ObjectType>
+
+	<opc:ObjectType SymbolicName="ADUReceived" BaseType="ua:BaseObjectType">
+		<opc:Description>ADU Received Infomation Model.</opc:Description>
+		<opc:Children>
+			<opc:Variable SymbolicName="ProcessOrder" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="DateTime" DataType="ua:DateTime"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="MaterialCode" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="ActualQuantity" DataType="ua:Double" ValueRank="Scalar" TypeDefinition="ua:AnalogItemType" AccessLevel="Read" />
+			<opc:Variable SymbolicName="QuantityUOM" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="Lot" DataType="ua:Int32"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="PlantCode" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="DeviceIdentifier" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="VesselID" DataType="ua:String"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="ItemMaterial" DataType="ua:Int32"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="BatchStepID" DataType="ua:Int32"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="NewDosingRequest" DataType="ua:Boolean"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="ProcessOrderDataSent" DataType="ua:Boolean"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="RequestAccepted" DataType="ua:Boolean"  AccessLevel="Write" />
+			<opc:Variable SymbolicName="ReadyForNewDosing" DataType="ua:Boolean"  AccessLevel="Write" />
+			<opc:Variable SymbolicName="ConsumptionAccepted" DataType="ua:Boolean"  AccessLevel="Read" />
+			<opc:Variable SymbolicName="DosingCompleted" DataType="ua:Boolean"  AccessLevel="Write" />
+			<opc:Variable SymbolicName="Watchdog" DataType="ua:Boolean"  AccessLevel="Read" />
+		</opc:Children>
+	</opc:ObjectType>
+
+	<opc:Object SymbolicName="ADUSent1" TypeDefinition="ADUSent" SupportsEvents="true">
+		<opc:BrowseName>ADUSent #1</opc:BrowseName>
+		<opc:Children>
+			<opc:Object SymbolicName="ADUSent" TypeDefinition="ADUSent" SupportsEvents="true">
+				<opc:DisplayName>ADUSent1</opc:DisplayName>
+			</opc:Object>
+		</opc:Children>
+
+		<!-- Link the instance back to the ObjectsFolder  -->
+		<opc:References>
+			<opc:Reference IsInverse="true">
+				<opc:ReferenceType>ua:Organizes</opc:ReferenceType>
+				<opc:TargetId>ua:ObjectsFolder</opc:TargetId>
+			</opc:Reference>
+		</opc:References>
+
+	</opc:Object>
+
+	<opc:Object SymbolicName="ADUReceived1" TypeDefinition="ADUReceived" SupportsEvents="true">
+		<opc:BrowseName>ADUReceived #1</opc:BrowseName>
+		<opc:Children>
+			<opc:Object SymbolicName="ADUReceived" TypeDefinition="ADUReceived" SupportsEvents="true">
+				<opc:DisplayName>ADUReceived1</opc:DisplayName>
+			</opc:Object>
+		</opc:Children>
+
+		<!-- Link the instance back to the ObjectsFolder  -->
+		<opc:References>
+			<opc:Reference IsInverse="true">
+				<opc:ReferenceType>ua:Organizes</opc:ReferenceType>
+				<opc:TargetId>ua:ObjectsFolder</opc:TargetId>
+			</opc:Reference>
+		</opc:References>
+
+	</opc:Object>
+
+</opc:ModelDesign>

@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OPC\OpcServer.cs" />
+    <Compile Include="OPC\OPCUAServer.Constants.cs" />
     <Compile Include="WebApi\CrosHandler.cs" />
     <Compile Include="DBHelper.cs" />
     <Compile Include="WebApi\HttpServer.cs" />
@@ -116,6 +117,7 @@
     <Folder Include="DataBase\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="OPC\DesignModel.xml" />
     <Content Include="OPC\Opc ua information model.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

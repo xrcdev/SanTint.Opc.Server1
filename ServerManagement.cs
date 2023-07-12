@@ -19,8 +19,8 @@ namespace SanTint.Opc.Server
             _apiService = new HttpServer();
             _apiService.Start();
 
-            //_opcServerApp = new OpcServerApp();
-            //_opcServerApp.Start();
+            _opcServerApp = new OpcServerApp();
+            _opcServerApp.Start();
         }
 
         public static void Stop()

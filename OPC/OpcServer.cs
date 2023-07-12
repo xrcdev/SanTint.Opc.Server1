@@ -2,6 +2,10 @@
 using LibUA;
 using LibUA.Core;
 
+using OPCUAServer;
+
+using SanTint.Common.Log;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +22,12 @@ namespace SanTint.Opc.Server
         {
             SanTint.Common.Log.Logger.Write("OpcServer即将启动");
             OpcServer _app = new OpcServer();
-            server = new LibUA.Server.Master(_app, 7718, 10, 30, 100, new OpcConsoleLogger());
+            System.Configuration.Configuration config = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
+            var strIP = config.AppSettings.Settings["OpcIp"].Value;
+            var strPort = config.AppSettings.Settings["OpcPort"].Value;
+            if (string.IsNullOrWhiteSpace(strPort)) strPort = "8089";
+            else strPort = strPort.Trim();
+            server = new LibUA.Server.Master(_app, Convert.ToInt32(strPort), 10, 30, 100, new OpcConsoleLogger());
             server.Start();
             SanTint.Common.Log.Logger.Write("OpcServer启动成功");
         }
@@ -35,22 +44,26 @@ namespace SanTint.Opc.Server
     {
         public OpcServer()
         {
-            //ApplicationDescription uaAppDesc = new ApplicationDescription(
-            //    "urn:DemoApplication", "http://SanTint.com/",
-            //    new LocalizedText("en-US", "SanTint OPC UA Server"), ApplicationType.Server,
-            //    null,0, null);
+            ApplicationDescription uaAppDesc = new ApplicationDescription(
+                "urn:SanTintOpcServer",
+                "http://opcfoundation.org/Server",
+                new LocalizedText("en-US", "SanTint OPC UA Server"),
+                ApplicationType.Server,
+                null,
+                null,
+                null);
 
+            var rootNodeId = new NodeId(2, "DataBlocksGlobal");
+            NodeObject ItemsRoot = new NodeObject(rootNodeId, new QualifiedName("DataBlocksGlobal"), new LocalizedText("DataBlocksGlobal"),
+                     new LocalizedText("ADU Sent Infomation Model"), 0, 0, 0);
+            
+            AddressSpaceTable[new NodeId(UAConst.ObjectsFolder)]
+                .References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), rootNodeId, false));
 
-            //NodeObject ItemsRoot = new NodeObject(new NodeId(2, 0), new QualifiedName("Items"), new LocalizedText("Items"),
-            //         new LocalizedText("Items"), 0, 0, 0);
+            ItemsRoot.References.Add(
+                new ReferenceNode(new NodeId(UAConst.Organizes), new NodeId(UAConst.ObjectsFolder), true));
 
-            //AddressSpaceTable[new NodeId(UAConst.ObjectsFolder)]
-            //    .References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), new NodeId(2, 0), false));
-
-            //ItemsRoot.References.Add(
-            //    new ReferenceNode(new NodeId(UAConst.Organizes), new NodeId(UAConst.ObjectsFolder), true));
-
-            //AddressSpaceTable.TryAdd(ItemsRoot.Id, ItemsRoot);
+            AddressSpaceTable.TryAdd(ItemsRoot.Id, ItemsRoot);
 
             //var nodeTypeFloat = new NodeId(0, 10);
             //var Node1D = new NodeVariable(new NodeId(2, (uint)(1000 + 1)), new QualifiedName("Array - 1D"),
@@ -116,7 +129,10 @@ namespace SanTint.Opc.Server
 
         public void Log(LogLevel Level, string Str)
         {
+#if DEBUG
             Console.WriteLine("OpcServer:[{0}] {1}", Level.ToString(), Str);
+#endif
+            Logger.Write(string.Format("OpcServer:[{0}] {1}", Level.ToString(), Str), Common.Utility.CategoryLog.Info);
         }
     }
 }

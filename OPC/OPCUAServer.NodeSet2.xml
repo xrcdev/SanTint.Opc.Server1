@@ -1,0 +1,1053 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" LastModified="2023-07-11T02:08:40.6854807Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://opcfoundation.org/OPCUAServer</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://opcfoundation.org/OPCUAServer" Version="1.0.0" PublicationDate="2023-07-11T02:08:40.6854807Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" XmlSchemaUri="http://opcfoundation.org/UA/2008/02/Types.xsd" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="SByte">i=2</Alias>
+    <Alias Alias="Byte">i=3</Alias>
+    <Alias Alias="Int16">i=4</Alias>
+    <Alias Alias="UInt16">i=5</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Float">i=10</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="Guid">i=14</Alias>
+    <Alias Alias="XmlElement">i=16</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="ExpandedNodeId">i=18</Alias>
+    <Alias Alias="QualifiedName">i=20</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="StatusCode">i=19</Alias>
+    <Alias Alias="Structure">i=22</Alias>
+    <Alias Alias="Number">i=26</Alias>
+    <Alias Alias="Integer">i=27</Alias>
+    <Alias Alias="UInteger">i=28</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasEventSource">i=36</Alias>
+    <Alias Alias="HasNotifier">i=48</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasEncoding">i=38</Alias>
+    <Alias Alias="HasDescription">i=39</Alias>
+    <Alias Alias="HasCause">i=53</Alias>
+    <Alias Alias="ToState">i=52</Alias>
+    <Alias Alias="FromState">i=51</Alias>
+    <Alias Alias="HasEffect">i=54</Alias>
+    <Alias Alias="HasTrueSubState">i=9004</Alias>
+    <Alias Alias="HasFalseSubState">i=9005</Alias>
+    <Alias Alias="HasDictionaryEntry">i=17597</Alias>
+    <Alias Alias="HasCondition">i=9006</Alias>
+    <Alias Alias="HasGuard">i=15112</Alias>
+    <Alias Alias="HasAddIn">i=17604</Alias>
+    <Alias Alias="HasInterface">i=17603</Alias>
+  </Aliases>
+  <UAObjectType NodeId="ns=1;i=1" BrowseName="1:ADUSent">
+    <DisplayName>ADUSent</DisplayName>
+    <Description>ADU Sent Infomation Model.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=2</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=3</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=4</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=11</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=12</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=13</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=14</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=17</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=18</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=19</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=20</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=21</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=22</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=23</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=24</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=2" BrowseName="1:ProcessOrder" ParentNodeId="ns=1;i=1" DataType="String">
+    <DisplayName>ProcessOrder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=3" BrowseName="1:DateTime" ParentNodeId="ns=1;i=1" DataType="DateTime">
+    <DisplayName>DateTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4" BrowseName="1:MaterialCode" ParentNodeId="ns=1;i=1" DataType="String">
+    <DisplayName>MaterialCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5" BrowseName="1:Quantity" ParentNodeId="ns=1;i=1" DataType="Double">
+    <DisplayName>Quantity</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=9</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=9" BrowseName="EURange" ParentNodeId="ns=1;i=5" DataType="i=884">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=11" BrowseName="1:QuantityUOM" ParentNodeId="ns=1;i=1" DataType="String">
+    <DisplayName>QuantityUOM</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=12" BrowseName="1:Lot" ParentNodeId="ns=1;i=1" DataType="Int32">
+    <DisplayName>Lot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=13" BrowseName="1:PlantCode" ParentNodeId="ns=1;i=1" DataType="String">
+    <DisplayName>PlantCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=14" BrowseName="1:DeviceIdentifier" ParentNodeId="ns=1;i=1" DataType="String">
+    <DisplayName>DeviceIdentifier</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15" BrowseName="1:VesselID" ParentNodeId="ns=1;i=1" DataType="String">
+    <DisplayName>VesselID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=16" BrowseName="1:ItemMaterial" ParentNodeId="ns=1;i=1" DataType="Int32">
+    <DisplayName>ItemMaterial</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=17" BrowseName="1:BatchStepID" ParentNodeId="ns=1;i=1" DataType="Int32">
+    <DisplayName>BatchStepID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=18" BrowseName="1:NewDosingRequest" ParentNodeId="ns=1;i=1" DataType="Boolean">
+    <DisplayName>NewDosingRequest</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=19" BrowseName="1:ProcessOrderDataSent" ParentNodeId="ns=1;i=1" DataType="Boolean">
+    <DisplayName>ProcessOrderDataSent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=20" BrowseName="1:RequestAccepted" ParentNodeId="ns=1;i=1" DataType="Boolean" AccessLevel="2">
+    <DisplayName>RequestAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=21" BrowseName="1:ReadyForNewDosing" ParentNodeId="ns=1;i=1" DataType="Boolean" AccessLevel="2">
+    <DisplayName>ReadyForNewDosing</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=22" BrowseName="1:ConsumptionAccepted" ParentNodeId="ns=1;i=1" DataType="Boolean">
+    <DisplayName>ConsumptionAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=23" BrowseName="1:DosingCompleted" ParentNodeId="ns=1;i=1" DataType="Boolean" AccessLevel="2">
+    <DisplayName>DosingCompleted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=24" BrowseName="1:Watchdog" ParentNodeId="ns=1;i=1" DataType="Boolean">
+    <DisplayName>Watchdog</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=25" BrowseName="1:ADUReceived">
+    <DisplayName>ADUReceived</DisplayName>
+    <Description>ADU Received Infomation Model.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=26</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=27</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=28</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=29</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=35</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=36</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=37</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=38</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=39</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=40</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=41</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=42</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=43</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=44</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=45</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=46</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=47</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=48</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=26" BrowseName="1:ProcessOrder" ParentNodeId="ns=1;i=25" DataType="String">
+    <DisplayName>ProcessOrder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=27" BrowseName="1:DateTime" ParentNodeId="ns=1;i=25" DataType="DateTime">
+    <DisplayName>DateTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=28" BrowseName="1:MaterialCode" ParentNodeId="ns=1;i=25" DataType="String">
+    <DisplayName>MaterialCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=29" BrowseName="1:ActualQuantity" ParentNodeId="ns=1;i=25" DataType="Double">
+    <DisplayName>ActualQuantity</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=33</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=33" BrowseName="EURange" ParentNodeId="ns=1;i=29" DataType="i=884">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=29</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=35" BrowseName="1:QuantityUOM" ParentNodeId="ns=1;i=25" DataType="String">
+    <DisplayName>QuantityUOM</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=36" BrowseName="1:Lot" ParentNodeId="ns=1;i=25" DataType="Int32">
+    <DisplayName>Lot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=37" BrowseName="1:PlantCode" ParentNodeId="ns=1;i=25" DataType="String">
+    <DisplayName>PlantCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=38" BrowseName="1:DeviceIdentifier" ParentNodeId="ns=1;i=25" DataType="String">
+    <DisplayName>DeviceIdentifier</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=39" BrowseName="1:VesselID" ParentNodeId="ns=1;i=25" DataType="String">
+    <DisplayName>VesselID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=40" BrowseName="1:ItemMaterial" ParentNodeId="ns=1;i=25" DataType="Int32">
+    <DisplayName>ItemMaterial</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=41" BrowseName="1:BatchStepID" ParentNodeId="ns=1;i=25" DataType="Int32">
+    <DisplayName>BatchStepID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=42" BrowseName="1:NewDosingRequest" ParentNodeId="ns=1;i=25" DataType="Boolean">
+    <DisplayName>NewDosingRequest</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=43" BrowseName="1:ProcessOrderDataSent" ParentNodeId="ns=1;i=25" DataType="Boolean">
+    <DisplayName>ProcessOrderDataSent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=44" BrowseName="1:RequestAccepted" ParentNodeId="ns=1;i=25" DataType="Boolean" AccessLevel="2">
+    <DisplayName>RequestAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=45" BrowseName="1:ReadyForNewDosing" ParentNodeId="ns=1;i=25" DataType="Boolean" AccessLevel="2">
+    <DisplayName>ReadyForNewDosing</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=46" BrowseName="1:ConsumptionAccepted" ParentNodeId="ns=1;i=25" DataType="Boolean">
+    <DisplayName>ConsumptionAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=47" BrowseName="1:DosingCompleted" ParentNodeId="ns=1;i=25" DataType="Boolean" AccessLevel="2">
+    <DisplayName>DosingCompleted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=48" BrowseName="1:Watchdog" ParentNodeId="ns=1;i=25" DataType="Boolean">
+    <DisplayName>Watchdog</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=25</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=49" BrowseName="1:ADUSent #1" SymbolicName="ADUSent1" EventNotifier="1">
+    <DisplayName>ADUSent #1</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=50</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=51</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=52</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=53</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=59</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=60</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=61</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=62</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=63</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=64</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=65</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=66</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=67</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=68</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=69</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=70</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=71</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=72</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=73</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=50" BrowseName="1:ProcessOrder" ParentNodeId="ns=1;i=49" DataType="String">
+    <DisplayName>ProcessOrder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=51" BrowseName="1:DateTime" ParentNodeId="ns=1;i=49" DataType="DateTime">
+    <DisplayName>DateTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=52" BrowseName="1:MaterialCode" ParentNodeId="ns=1;i=49" DataType="String">
+    <DisplayName>MaterialCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=53" BrowseName="1:Quantity" ParentNodeId="ns=1;i=49" DataType="Double">
+    <DisplayName>Quantity</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=57</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=57" BrowseName="EURange" ParentNodeId="ns=1;i=53" DataType="i=884">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=53</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=59" BrowseName="1:QuantityUOM" ParentNodeId="ns=1;i=49" DataType="String">
+    <DisplayName>QuantityUOM</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=60" BrowseName="1:Lot" ParentNodeId="ns=1;i=49" DataType="Int32">
+    <DisplayName>Lot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=61" BrowseName="1:PlantCode" ParentNodeId="ns=1;i=49" DataType="String">
+    <DisplayName>PlantCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=62" BrowseName="1:DeviceIdentifier" ParentNodeId="ns=1;i=49" DataType="String">
+    <DisplayName>DeviceIdentifier</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=63" BrowseName="1:VesselID" ParentNodeId="ns=1;i=49" DataType="String">
+    <DisplayName>VesselID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=64" BrowseName="1:ItemMaterial" ParentNodeId="ns=1;i=49" DataType="Int32">
+    <DisplayName>ItemMaterial</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=65" BrowseName="1:BatchStepID" ParentNodeId="ns=1;i=49" DataType="Int32">
+    <DisplayName>BatchStepID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=66" BrowseName="1:NewDosingRequest" ParentNodeId="ns=1;i=49" DataType="Boolean">
+    <DisplayName>NewDosingRequest</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=67" BrowseName="1:ProcessOrderDataSent" ParentNodeId="ns=1;i=49" DataType="Boolean">
+    <DisplayName>ProcessOrderDataSent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=68" BrowseName="1:RequestAccepted" ParentNodeId="ns=1;i=49" DataType="Boolean" AccessLevel="2">
+    <DisplayName>RequestAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=69" BrowseName="1:ReadyForNewDosing" ParentNodeId="ns=1;i=49" DataType="Boolean" AccessLevel="2">
+    <DisplayName>ReadyForNewDosing</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=70" BrowseName="1:ConsumptionAccepted" ParentNodeId="ns=1;i=49" DataType="Boolean">
+    <DisplayName>ConsumptionAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=71" BrowseName="1:DosingCompleted" ParentNodeId="ns=1;i=49" DataType="Boolean" AccessLevel="2">
+    <DisplayName>DosingCompleted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=72" BrowseName="1:Watchdog" ParentNodeId="ns=1;i=49" DataType="Boolean">
+    <DisplayName>Watchdog</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=73" BrowseName="1:ADUSent" ParentNodeId="ns=1;i=49" EventNotifier="1">
+    <DisplayName>ADUSent1</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=74</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=75</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=76</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=77</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=83</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=84</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=85</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=86</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=87</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=88</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=89</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=90</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=91</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=92</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=93</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=94</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=95</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=96</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=49</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=74" BrowseName="1:ProcessOrder" ParentNodeId="ns=1;i=73" DataType="String">
+    <DisplayName>ProcessOrder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=75" BrowseName="1:DateTime" ParentNodeId="ns=1;i=73" DataType="DateTime">
+    <DisplayName>DateTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=76" BrowseName="1:MaterialCode" ParentNodeId="ns=1;i=73" DataType="String">
+    <DisplayName>MaterialCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=77" BrowseName="1:Quantity" ParentNodeId="ns=1;i=73" DataType="Double">
+    <DisplayName>Quantity</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=81</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=81" BrowseName="EURange" ParentNodeId="ns=1;i=77" DataType="i=884">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=77</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=83" BrowseName="1:QuantityUOM" ParentNodeId="ns=1;i=73" DataType="String">
+    <DisplayName>QuantityUOM</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=84" BrowseName="1:Lot" ParentNodeId="ns=1;i=73" DataType="Int32">
+    <DisplayName>Lot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=85" BrowseName="1:PlantCode" ParentNodeId="ns=1;i=73" DataType="String">
+    <DisplayName>PlantCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=86" BrowseName="1:DeviceIdentifier" ParentNodeId="ns=1;i=73" DataType="String">
+    <DisplayName>DeviceIdentifier</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=87" BrowseName="1:VesselID" ParentNodeId="ns=1;i=73" DataType="String">
+    <DisplayName>VesselID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=88" BrowseName="1:ItemMaterial" ParentNodeId="ns=1;i=73" DataType="Int32">
+    <DisplayName>ItemMaterial</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=89" BrowseName="1:BatchStepID" ParentNodeId="ns=1;i=73" DataType="Int32">
+    <DisplayName>BatchStepID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=90" BrowseName="1:NewDosingRequest" ParentNodeId="ns=1;i=73" DataType="Boolean">
+    <DisplayName>NewDosingRequest</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=91" BrowseName="1:ProcessOrderDataSent" ParentNodeId="ns=1;i=73" DataType="Boolean">
+    <DisplayName>ProcessOrderDataSent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=92" BrowseName="1:RequestAccepted" ParentNodeId="ns=1;i=73" DataType="Boolean" AccessLevel="2">
+    <DisplayName>RequestAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=93" BrowseName="1:ReadyForNewDosing" ParentNodeId="ns=1;i=73" DataType="Boolean" AccessLevel="2">
+    <DisplayName>ReadyForNewDosing</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=94" BrowseName="1:ConsumptionAccepted" ParentNodeId="ns=1;i=73" DataType="Boolean">
+    <DisplayName>ConsumptionAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=95" BrowseName="1:DosingCompleted" ParentNodeId="ns=1;i=73" DataType="Boolean" AccessLevel="2">
+    <DisplayName>DosingCompleted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=96" BrowseName="1:Watchdog" ParentNodeId="ns=1;i=73" DataType="Boolean">
+    <DisplayName>Watchdog</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=73</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=97" BrowseName="1:ADUReceived #1" SymbolicName="ADUReceived1" EventNotifier="1">
+    <DisplayName>ADUReceived #1</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=98</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=99</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=100</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=101</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=107</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=108</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=109</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=110</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=111</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=112</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=113</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=114</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=115</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=116</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=117</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=118</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=119</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=120</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=121</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=25</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=98" BrowseName="1:ProcessOrder" ParentNodeId="ns=1;i=97" DataType="String">
+    <DisplayName>ProcessOrder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=99" BrowseName="1:DateTime" ParentNodeId="ns=1;i=97" DataType="DateTime">
+    <DisplayName>DateTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=100" BrowseName="1:MaterialCode" ParentNodeId="ns=1;i=97" DataType="String">
+    <DisplayName>MaterialCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=101" BrowseName="1:ActualQuantity" ParentNodeId="ns=1;i=97" DataType="Double">
+    <DisplayName>ActualQuantity</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=105</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=105" BrowseName="EURange" ParentNodeId="ns=1;i=101" DataType="i=884">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=107" BrowseName="1:QuantityUOM" ParentNodeId="ns=1;i=97" DataType="String">
+    <DisplayName>QuantityUOM</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=108" BrowseName="1:Lot" ParentNodeId="ns=1;i=97" DataType="Int32">
+    <DisplayName>Lot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=109" BrowseName="1:PlantCode" ParentNodeId="ns=1;i=97" DataType="String">
+    <DisplayName>PlantCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=110" BrowseName="1:DeviceIdentifier" ParentNodeId="ns=1;i=97" DataType="String">
+    <DisplayName>DeviceIdentifier</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=111" BrowseName="1:VesselID" ParentNodeId="ns=1;i=97" DataType="String">
+    <DisplayName>VesselID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=112" BrowseName="1:ItemMaterial" ParentNodeId="ns=1;i=97" DataType="Int32">
+    <DisplayName>ItemMaterial</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=113" BrowseName="1:BatchStepID" ParentNodeId="ns=1;i=97" DataType="Int32">
+    <DisplayName>BatchStepID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=114" BrowseName="1:NewDosingRequest" ParentNodeId="ns=1;i=97" DataType="Boolean">
+    <DisplayName>NewDosingRequest</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=115" BrowseName="1:ProcessOrderDataSent" ParentNodeId="ns=1;i=97" DataType="Boolean">
+    <DisplayName>ProcessOrderDataSent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=116" BrowseName="1:RequestAccepted" ParentNodeId="ns=1;i=97" DataType="Boolean" AccessLevel="2">
+    <DisplayName>RequestAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=117" BrowseName="1:ReadyForNewDosing" ParentNodeId="ns=1;i=97" DataType="Boolean" AccessLevel="2">
+    <DisplayName>ReadyForNewDosing</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=118" BrowseName="1:ConsumptionAccepted" ParentNodeId="ns=1;i=97" DataType="Boolean">
+    <DisplayName>ConsumptionAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=119" BrowseName="1:DosingCompleted" ParentNodeId="ns=1;i=97" DataType="Boolean" AccessLevel="2">
+    <DisplayName>DosingCompleted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=120" BrowseName="1:Watchdog" ParentNodeId="ns=1;i=97" DataType="Boolean">
+    <DisplayName>Watchdog</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=121" BrowseName="1:ADUReceived" ParentNodeId="ns=1;i=97" EventNotifier="1">
+    <DisplayName>ADUReceived1</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=122</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=123</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=124</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=125</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=132</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=133</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=134</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=135</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=136</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=137</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=138</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=139</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=140</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=141</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=142</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=143</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=144</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=25</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=97</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=122" BrowseName="1:ProcessOrder" ParentNodeId="ns=1;i=121" DataType="String">
+    <DisplayName>ProcessOrder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=123" BrowseName="1:DateTime" ParentNodeId="ns=1;i=121" DataType="DateTime">
+    <DisplayName>DateTime</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=124" BrowseName="1:MaterialCode" ParentNodeId="ns=1;i=121" DataType="String">
+    <DisplayName>MaterialCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=125" BrowseName="1:ActualQuantity" ParentNodeId="ns=1;i=121" DataType="Double">
+    <DisplayName>ActualQuantity</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=129</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2368</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=129" BrowseName="EURange" ParentNodeId="ns=1;i=125" DataType="i=884">
+    <DisplayName>EURange</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=125</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=131" BrowseName="1:QuantityUOM" ParentNodeId="ns=1;i=121" DataType="String">
+    <DisplayName>QuantityUOM</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=132" BrowseName="1:Lot" ParentNodeId="ns=1;i=121" DataType="Int32">
+    <DisplayName>Lot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=133" BrowseName="1:PlantCode" ParentNodeId="ns=1;i=121" DataType="String">
+    <DisplayName>PlantCode</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=134" BrowseName="1:DeviceIdentifier" ParentNodeId="ns=1;i=121" DataType="String">
+    <DisplayName>DeviceIdentifier</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=135" BrowseName="1:VesselID" ParentNodeId="ns=1;i=121" DataType="String">
+    <DisplayName>VesselID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=136" BrowseName="1:ItemMaterial" ParentNodeId="ns=1;i=121" DataType="Int32">
+    <DisplayName>ItemMaterial</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=137" BrowseName="1:BatchStepID" ParentNodeId="ns=1;i=121" DataType="Int32">
+    <DisplayName>BatchStepID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=138" BrowseName="1:NewDosingRequest" ParentNodeId="ns=1;i=121" DataType="Boolean">
+    <DisplayName>NewDosingRequest</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=139" BrowseName="1:ProcessOrderDataSent" ParentNodeId="ns=1;i=121" DataType="Boolean">
+    <DisplayName>ProcessOrderDataSent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=140" BrowseName="1:RequestAccepted" ParentNodeId="ns=1;i=121" DataType="Boolean" AccessLevel="2">
+    <DisplayName>RequestAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=141" BrowseName="1:ReadyForNewDosing" ParentNodeId="ns=1;i=121" DataType="Boolean" AccessLevel="2">
+    <DisplayName>ReadyForNewDosing</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=142" BrowseName="1:ConsumptionAccepted" ParentNodeId="ns=1;i=121" DataType="Boolean">
+    <DisplayName>ConsumptionAccepted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=143" BrowseName="1:DosingCompleted" ParentNodeId="ns=1;i=121" DataType="Boolean" AccessLevel="2">
+    <DisplayName>DosingCompleted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=144" BrowseName="1:Watchdog" ParentNodeId="ns=1;i=121" DataType="Boolean">
+    <DisplayName>Watchdog</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=121</Reference>
+    </References>
+  </UAVariable>
+</UANodeSet>

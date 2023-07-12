@@ -49,7 +49,6 @@ namespace SanTint.Opc.Server.Model
         /// 设备标识
         /// </summary>
         /// <value></value>
-        [Unique]
         public string DeviceIdentifier { get; set; }
 
         /// <summary>
@@ -79,6 +78,7 @@ namespace SanTint.Opc.Server.Model
         /// 数据表示 GUID
         /// </summary>
         /// <value> new GUID </value>
+        [Unique]
         public string DataIdentifier { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>

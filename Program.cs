@@ -19,7 +19,7 @@ namespace SanTint.Opc.Server
         /// </summary>
         static void Main()
         {
-            
+            //TODO:发布时需要注释掉
             ServerManagement.Start();
             var quitEvent = CtrlCHandler();
             quitEvent.WaitOne(-1);
