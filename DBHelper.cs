@@ -51,7 +51,7 @@ namespace SanTint.Opc.Server
         {
             var result = new List<ADUSent>();
             var db = new SQLite.SQLiteConnection(_dbPath);
-            result = db.Query<ADUSent>($"select * from ADUSent where (ProcessOrder like '%{ProcessOrderOrMaterialCode}%'  or MaterialCode like  '%{ProcessOrderOrMaterialCode}%') and IsSTComplete =0", ProcessOrderOrMaterialCode);
+            result = db.Query<ADUSent>($"select * from ADUSent where (ProcessOrder like '%{ProcessOrderOrMaterialCode}%'  or MaterialCode like  '%{ProcessOrderOrMaterialCode}%') and IFNULL(IsSTComplete, 0) = 0", ProcessOrderOrMaterialCode);
             //result = db.Query<ADUSent>("select * from ADUSent where ProcessOrder like '%@ProcessOrderOrMaterialCode%' or MaterialCode like '%@ProcessOrderOrMaterialCode%'", ProcessOrderOrMaterialCode);
             //经测试无法使用参数形式,用于like查询
             return result;
@@ -141,6 +141,16 @@ namespace SanTint.Opc.Server
             var result = db.Update(aduReceived);
             db.Dispose();
             return result > 0;
+        }
+
+        public List<ADUReceived> GetUncompleteADUReceived()
+        {
+            var result = new List<ADUReceived>();
+            var db = new SQLite.SQLiteConnection(_dbPath);
+            result = db.Query<ADUReceived>($"select * from ADUReceived where  IFNULL(IsSTComplete,0) = 0");
+            //result = db.Query<ADUSent>("select * from ADUSent where ProcessOrder like '%@ProcessOrderOrMaterialCode%' or MaterialCode like '%@ProcessOrderOrMaterialCode%'", ProcessOrderOrMaterialCode);
+            //经测试无法使用参数形式,用于like查询
+            return result;
         }
 
         #endregion

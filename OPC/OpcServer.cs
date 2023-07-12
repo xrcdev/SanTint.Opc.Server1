@@ -25,6 +25,7 @@ using System.Web.Http.SelfHost;
 using System.Xml.Linq;
 using System.IO;
 using RSACng = LibUA.Security.Cryptography.RSACng;
+using Newtonsoft.Json;
 
 namespace SanTint.Opc.Server
 {
@@ -63,7 +64,7 @@ namespace SanTint.Opc.Server
 
         NodeObject ItemsRoot = default;
         public ConcurrentDictionary<NodeId, Node> MyAddressSpaceTable;
-        System.Threading.Timer _checkNewMessageTimer = default;
+        //System.Threading.Timer _checkNewMessageTimer = default;
         System.Threading.Timer _notifyClientServerFinishedTimer = default;
         Dictionary<string, NodeVariable> AduSentDic = new Dictionary<string, NodeVariable>();
         Dictionary<string, NodeVariable> AduReceivedDic = new Dictionary<string, NodeVariable>();
@@ -113,106 +114,135 @@ namespace SanTint.Opc.Server
             MyAddressSpaceTable = AddressSpaceTable;
 
             //timer
-            System.Configuration.Configuration config = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
-            var strCheckNewMessageInterval = config.AppSettings.Settings["CheckNewMessageInterval"].Value;
-            if (string.IsNullOrWhiteSpace(strCheckNewMessageInterval)) strCheckNewMessageInterval = "1000";
-            else strCheckNewMessageInterval = strCheckNewMessageInterval.Trim();
-            _checkNewMessageInterval = Convert.ToInt32(strCheckNewMessageInterval);
-            _checkNewMessageTimer = new System.Threading.Timer((obj) => CheckNewMessage(), null, 1000, _checkNewMessageInterval);
+            //System.Configuration.Configuration config = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
+            //var strCheckNewMessageInterval = config.AppSettings.Settings["CheckNewMessageInterval"].Value;
+            //if (string.IsNullOrWhiteSpace(strCheckNewMessageInterval)) strCheckNewMessageInterval = "1000";
+            //else strCheckNewMessageInterval = strCheckNewMessageInterval.Trim();
+            //_checkNewMessageInterval = Convert.ToInt32(strCheckNewMessageInterval);
+            //_checkNewMessageTimer = new System.Threading.Timer((obj) => CheckNewMessage(), null, 1000, _checkNewMessageInterval);
 
             _notifyClientServerFinishedTimer = new Timer((obj) => NotifyClientServerFinished(), null, 1000, _checkNewMessageInterval);
         }
 
 
-        private void CheckNewMessage()
-        {
-            _checkNewMessageTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            try
-            {
-                var aduS = new ADUSent();
-                var aduR = new ADUReceived();
-                var value = AduSentDic[nameof(aduS.NewDosingRequest)].Value;
-                if (value != null && Convert.ToBoolean(value))
-                {
-                    AduReceivedDic[nameof(aduR.RequestAccepted)].Value = false;
-                    AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = true;
-                    MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
-                    MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
-                    Logger.Write("服务端准备接收,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
+        //private void CheckNewMessage()
+        //{
+        //    _checkNewMessageTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        //    try
+        //    {
+        //        var aduS = new ADUSent();
+        //        var aduR = new ADUReceived();
+        //        var value = AduSentDic[nameof(aduS.NewDosingRequest)].Value;
+        //        if (value != null && Convert.ToBoolean(value))
+        //        {
+        //            AduReceivedDic[nameof(aduR.RequestAccepted)].Value = false;
+        //            AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = true;
+        //            MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+        //            MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
+        //            Logger.Write("服务端准备接收,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
 
-                    //等待客户端发送完成 ProcessOrderDataSent=true
-                    while (true)
-                    {
-                        var value1 = AduSentDic[nameof(aduS.ProcessOrderDataSent)].Value;
-                        if (value1 != null && Convert.ToBoolean(value1))
-                        {
-                            //读取AduSend各节点数据,保存到数据库
-                            ConvertNodeToAduSend(aduS);
+        //            //等待客户端发送完成 ProcessOrderDataSent=true
+        //            while (true)
+        //            {
+        //                var value1 = AduSentDic[nameof(aduS.ProcessOrderDataSent)].Value;
+        //                if (value1 != null && Convert.ToBoolean(value1))
+        //                {
+        //                    //读取AduSend各节点数据,保存到数据库
+        //                    ConvertNodeToAduSend(aduS);
 
-                            if (CheckAduSendIsOk(aduS))
-                            {
-                                Logger.Write("ADUSent新增到数据库", category: Common.Utility.CategoryLog.Info);
-                                _dbHelper.AddADUSent(aduS);
-                                //接收完成,通知客户端
-                                AduReceivedDic[nameof(aduR.RequestAccepted)].Value = true;
-                                AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = false;
-                                MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
-                                MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
-                                Logger.Write("ADUSent新增到数据库,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
-                                break;
-                            }
+        //                    if (CheckAduSendIsOk(aduS))
+        //                    {
+        //                        Logger.Write("ADUSent新增到数据库", category: Common.Utility.CategoryLog.Info);
+        //                        _dbHelper.AddADUSent(aduS);
+        //                        //接收完成,通知客户端
+        //                        AduReceivedDic[nameof(aduR.RequestAccepted)].Value = true;
+        //                        AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = false;
+        //                        MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+        //                        MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
+        //                        Logger.Write("ADUSent新增到数据库,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
+        //                        break;
+        //                    }
 
-                            Thread.Sleep(_checkNewMessageInterval);
-                            continue;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Write("检测ADUSent是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
-                Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
-            }
+        //                    Thread.Sleep(_checkNewMessageInterval);
+        //                    continue;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger.Write("检测ADUSent是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
+        //        Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
+        //    }
 
-            _checkNewMessageTimer.Change(1000, _checkNewMessageInterval);
-        }
+        //    _checkNewMessageTimer.Change(0, _checkNewMessageInterval);
+        //}
 
         private void NotifyClientServerFinished()
         {
             _notifyClientServerFinishedTimer.Change(Timeout.Infinite, Timeout.Infinite);
             try
             {
-                var aduR = QueueHelper.TryPickUpADUReceived();
-                if (aduR != null)
+                var aduR = new ADUReceived();
+                var currentVal = AduReceivedDic[nameof(aduR.DosingCompleted)].Value;
+                if (currentVal != null && Convert.ToBoolean(currentVal))
                 {
-                    //设置节点值
-                    AduReceivedDic[nameof(aduR.ProcessOrder)].Value = true;
+                    Logger.Write("ADUReceived正在反馈", category: Common.Utility.CategoryLog.Info);
+                }
+                else
+                {
+                    var ADUReceiveds = _dbHelper.GetUncompleteADUReceived();
 
-                    //通知客户端,DosingCompleted=true
-                    AduReceivedDic[nameof(aduR.DosingCompleted)].Value = true;
-                    MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(aduR.DosingCompleted)].Value));
-
-
-                    //等待客户端读取完成 ConsumptionAccepted=true
-                    var aduS = new ADUSent();
-                    while (true)
+                    if (ADUReceiveds != null && ADUReceiveds.Any())
                     {
-                        var value = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
-                        if (value != null && Convert.ToBoolean(value))
+                        foreach (var item in ADUReceiveds)
                         {
-                            AduReceivedDic[nameof(aduR.DosingCompleted)].Value = false;
-                            MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(aduR.DosingCompleted)].Value));
-                            Logger.Write("Received成功反馈给客户端", category: Common.Utility.CategoryLog.Info);
-                            aduR.IsComplete = true;
-                            aduR.CompleteTime = DateTime.Now;
-                            _dbHelper.UpdateADUReceived(aduR);
+                            //设置节点值
+                            AduReceivedDic[nameof(item.ProcessOrder)].Value = item.ProcessOrder;
+                            AduReceivedDic[nameof(item.DateTime)].Value = item.DateTime;
+                            AduReceivedDic[nameof(item.MaterialCode)].Value = item.MaterialCode;
+                            AduReceivedDic[nameof(item.ActualQuantity)].Value = item.ActualQuantity;
+                            AduReceivedDic[nameof(item.QuantityUOM)].Value = item.QuantityUOM;
+                            AduReceivedDic[nameof(item.Lot)].Value = item.Lot;
+                            AduReceivedDic[nameof(item.PlantCode)].Value = item.PlantCode;
+                            AduReceivedDic[nameof(item.DeviceIdentifier)].Value = item.DeviceIdentifier;
+                            AduReceivedDic[nameof(item.VesselID)].Value = item.VesselID;
+                            AduReceivedDic[nameof(item.ItemMaterial)].Value = item.ItemMaterial;
+                            AduReceivedDic[nameof(item.BatchStepID)].Value = item.BatchStepID;
+                            AduReceivedDic[nameof(item.Watchdog)].Value = item.Watchdog;
+                            //TODO:各项数据,应无须逐个通知客户端
 
-                            break;
+                            //通知并通知客户端,DosingCompleted=true
+                            AduReceivedDic[nameof(item.DosingCompleted)].Value = true;
+                            MonitorNotifyDataChange(AduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(item.DosingCompleted)].Value));
+
+                            //等待客户端读取完成 ConsumptionAccepted=true
+                            var aduS = new ADUSent();
+                            object consumptionAcceptedValue = false;
+                            do
+                            {
+                                consumptionAcceptedValue = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
+                                if (consumptionAcceptedValue == null || !Convert.ToBoolean(consumptionAcceptedValue))
+                                {
+                                    consumptionAcceptedValue = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
+                                    Thread.Sleep(500);
+                                    continue;
+                                }
+                                else
+                                {
+                                    Logger.Write("客户端已确认收到收到ADUReceived消息", category: Common.Utility.CategoryLog.Info);
+
+                                    AduReceivedDic[nameof(item.DosingCompleted)].Value = false;
+                                    MonitorNotifyDataChange(AduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(item.DosingCompleted)].Value));
+                                    Logger.Write("重置,开始下一轮ADUReceived,成功通知客户端", category: Common.Utility.CategoryLog.Info);
+
+                                    item.IsComplete = true;
+                                    item.CompleteTime = DateTime.Now;
+                                    _dbHelper.UpdateADUReceived(item);
+                                    break;
+                                }
+                            } while (consumptionAcceptedValue == null || !Convert.ToBoolean(consumptionAcceptedValue));
                         }
-
-                        Thread.Sleep(1000);
-                        continue;
-
                     }
                 }
             }
@@ -221,7 +251,7 @@ namespace SanTint.Opc.Server
                 Logger.Write("检测ADUReceived是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
                 Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
             }
-            _notifyClientServerFinishedTimer.Change(1000, _checkNewMessageInterval);
+            _notifyClientServerFinishedTimer.Change(200, _checkNewMessageInterval);
         }
 
         private static bool CheckAduSendIsOk(ADUSent aduS)
@@ -488,6 +518,7 @@ namespace SanTint.Opc.Server
                 AccessLevel.CurrentRead | AccessLevel.CurrentWrite,
                 0, false,
                 new NodeId(UAConst.Boolean));
+            newDosingRequestNode.Value = false;
             aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), newDosingRequestNode.Id, false));
             newDosingRequestNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), newDosingRequestNode.Id, true));
             AddressSpaceTable.TryAdd(newDosingRequestNode.Id, newDosingRequestNode);
@@ -501,6 +532,7 @@ namespace SanTint.Opc.Server
                 AccessLevel.CurrentRead | AccessLevel.CurrentWrite,
                 0, false,
                 new NodeId(UAConst.Boolean));
+            consumptionAcceptedNode.Value=false;
             aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), consumptionAcceptedNode.Id, false));
             consumptionAcceptedNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), consumptionAcceptedNode.Id, true));
             AddressSpaceTable.TryAdd(consumptionAcceptedNode.Id, consumptionAcceptedNode);
@@ -514,6 +546,7 @@ namespace SanTint.Opc.Server
                 AccessLevel.CurrentRead | AccessLevel.CurrentWrite,
                 0, false,
                 new NodeId(UAConst.Boolean));
+            processOrderDataSentNode.Value=false;
             aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderDataSentNode.Id, false));
             processOrderDataSentNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderDataSentNode.Id, true));
             AddressSpaceTable.TryAdd(processOrderDataSentNode.Id, processOrderDataSentNode);
@@ -680,6 +713,7 @@ namespace SanTint.Opc.Server
                                               AccessLevel.CurrentRead | AccessLevel.CurrentWrite,
                                               0, false,
                                               new NodeId(UAConst.Boolean));
+            readyForNewDosingNode.Value=false;
             ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), readyForNewDosingNode.Id, false));
             readyForNewDosingNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), readyForNewDosingNode.Id, true));
             AddressSpaceTable.TryAdd(readyForNewDosingNode.Id, readyForNewDosingNode);
@@ -691,6 +725,7 @@ namespace SanTint.Opc.Server
                                               AccessLevel.CurrentRead | AccessLevel.CurrentWrite,
                                               0, false,
                                               new NodeId(UAConst.Boolean));
+            dosingCompletedNode.Value=false;
             ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dosingCompletedNode.Id, false));
             dosingCompletedNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dosingCompletedNode.Id, true));
             AddressSpaceTable.TryAdd(dosingCompletedNode.Id, dosingCompletedNode);
@@ -702,6 +737,7 @@ namespace SanTint.Opc.Server
                                               AccessLevel.CurrentRead | AccessLevel.CurrentWrite,
                                               0, false,
                                               new NodeId(UAConst.Boolean));
+            requestAcceptedNode.Value=true;
             ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), requestAcceptedNode.Id, false));
             requestAcceptedNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), requestAcceptedNode.Id, true));
             AddressSpaceTable.TryAdd(requestAcceptedNode.Id, requestAcceptedNode);
@@ -782,15 +818,75 @@ namespace SanTint.Opc.Server
                 {
                     foreach (var item in writeValues)
                     {
-                        var nodeVariable = AddressSpaceTable[writeValues[0].NodeId] as NodeVariable;
-                        nodeVariable.Value = writeValues[0].Value.Value;
-                        var respStatus = new UInt32[writeValues.Length];
-                        for (int i = 0; i < writeValues.Length; i++)
+                        var nodeVariable = AddressSpaceTable[item.NodeId] as NodeVariable;
+                        nodeVariable.Value = item.Value.Value;
+                        var aduR = new ADUReceived();
+
+                        if (item.NodeId.StringIdentifier.Contains("NewDosingRequest"))
                         {
-                            respStatus[i] = (UInt32)StatusCode.Good;
+                            if (Convert.ToBoolean(nodeVariable.Value))
+                            {
+                                AduReceivedDic[nameof(aduR.RequestAccepted)].Value = false;
+                                AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = true;
+                                MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+                                MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
+                                Logger.Write("服务端准备接收,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
+                            }
+                            //AddressSpaceTable[node]
                         }
-                        return respStatus;
+                        else if (item.NodeId.StringIdentifier.Contains("ProcessOrderDataSent"))
+                        {
+                            if (Convert.ToBoolean(nodeVariable.Value))
+                            {
+                                //读取AduSend各节点数据,保存到数据库
+                                var aduS = new ADUSent();
+                                ConvertNodeToAduSend(aduS);
+
+                                if (CheckAduSendIsOk(aduS))
+                                {
+                                    Logger.Write("ADUSent新增数据添加到数据库:" + JsonConvert.SerializeObject(aduS), category: Common.Utility.CategoryLog.Info);
+                                    _dbHelper.AddADUSent(aduS);
+
+                                    //接收完成,通知客户端
+                                    AduReceivedDic[nameof(aduR.RequestAccepted)].Value = true;
+                                    //AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = false;
+                                    MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+                                    //MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
+                                    Logger.Write("ADUSent新增数据添加数据库,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
+                                }
+                                else
+                                {
+                                    //TODO:是否有这种情况?发送数据不合规范
+                                    //接收完成,通知客户端
+                                    AduReceivedDic[nameof(aduR.RequestAccepted)].Value = true;
+                                    //AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = false;
+                                    MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+                                    //MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
+                                    Logger.Write("ADUSent新增数据不合规范:" + JsonConvert.SerializeObject(aduS), category: Common.Utility.CategoryLog.Error);
+                                    Logger.Write("ADUSent新增数据未添加到数据库,成功通知客户端", category: Common.Utility.CategoryLog.Info);
+                                }
+                            }
+                        }
+
+                        //else if (item.NodeId.StringIdentifier.Contains("ConsumptionAccepted"))
+                        //{
+                        //    if (Convert.ToBoolean(nodeVariable.Value))
+                        //    {
+                        //        Logger.Write("客户端已确认收到收到ADUReceived消息", category: Common.Utility.CategoryLog.Info);
+
+                        //        AduReceivedDic[nameof(aduR.DosingCompleted)].Value = false;
+                        //        MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(aduR.DosingCompleted)].Value));
+                        //        Logger.Write("重置,开始下一轮ADUReceived,成功通知客户端", category: Common.Utility.CategoryLog.Info);
+                        //    }
+                        //}
+
                     }
+                    var respStatus = new UInt32[writeValues.Length];
+                    for (int i = 0; i < writeValues.Length; i++)
+                    {
+                        respStatus[i] = (UInt32)StatusCode.Good;
+                    }
+                    return respStatus;
                 }
                 catch (Exception ex)
                 {
@@ -964,27 +1060,43 @@ namespace SanTint.Opc.Server
                 //}
                 if (node.BrowseName.Name.EndsWith("Boolean"))
                 {
-                    return new DataValue(true, StatusCode.Good, DateTime.Now);
-                }
-                else if (node.BrowseName.Name.EndsWith("String"))
-                {
-                    return new DataValue("Nice", StatusCode.Good, DateTime.Now);
-                }
-                else if (node.BrowseName.Name.EndsWith("Double"))
-                {
-                    if (node is NodeVariable nodeVar)
+                    if (node is NodeVariable nodeVar && nodeVar.Value != null)
                     {
                         return new DataValue(nodeVar.Value, StatusCode.Good, DateTime.Now);
                     }
-                    return new DataValue(3.14159265, StatusCode.Good, DateTime.Now);
+                    return new DataValue(false, StatusCode.Good, DateTime.Now);
+                }
+                else if (node.BrowseName.Name.EndsWith("String"))
+                {
+                    if (node is NodeVariable nodeVar && nodeVar.Value != null)
+                    {
+                        return new DataValue(nodeVar.Value, StatusCode.Good, DateTime.Now);
+                    }
+                    return new DataValue("", StatusCode.Good, DateTime.Now);
+                }
+                else if (node.BrowseName.Name.EndsWith("Double"))
+                {
+                    if (node is NodeVariable nodeVar && nodeVar.Value != null)
+                    {
+                        return new DataValue(nodeVar.Value, StatusCode.Good, DateTime.Now);
+                    }
+                    return new DataValue(0d, StatusCode.Good, DateTime.Now);
                 }
                 else if (node.BrowseName.Name.EndsWith("DateTime"))
                 {
-                    return new DataValue(DateTime.Now, StatusCode.Good, DateTime.Now);
+                    if (node is NodeVariable nodeVar && nodeVar.Value != null)
+                    {
+                        return new DataValue(nodeVar.Value, StatusCode.Good, DateTime.Now);
+                    }
+                    return new DataValue(new DateTime(1900,1,1), StatusCode.Good, DateTime.Now);
                 }
                 else if (node.BrowseName.Name.EndsWith("Int32"))
                 {
-                    return new DataValue(1, StatusCode.Good, DateTime.Now);
+                    if (node is NodeVariable nodeVar && nodeVar.Value != null)
+                    {
+                        return new DataValue(nodeVar.Value, StatusCode.Good, DateTime.Now);
+                    }
+                    return new DataValue(0, StatusCode.Good, DateTime.Now);
                 }
             }
 

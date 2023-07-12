@@ -87,7 +87,7 @@ namespace SanTint.Opc.Server
                 _dbHelper.AddADUReceived(received);
 
                 //添加到队列,定时任务通知客户端
-                QueueHelper.AddADUReceived(received);
+                //QueueHelper.AddADUReceived(received);
                 queryResult.IsSuccess = true;
                 var str = JsonConvert.SerializeObject(queryResult);
                 httpReponseMessage.Content = new StringContent(str);
