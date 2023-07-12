@@ -41,6 +41,10 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="LibUA, Version=1.0.8.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Include\LibUA.dll</HintPath>
+    </Reference>
     <Reference Include="SanTint.Common.ILog">
       <HintPath>..\..\Include\SanTint.Common.ILog.dll</HintPath>
     </Reference>
@@ -103,9 +107,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNet.WebApi.SelfHost">
       <Version>5.2.9</Version>
-    </PackageReference>
-    <PackageReference Include="nauful-LibUA-core">
-      <Version>1.0.8</Version>
     </PackageReference>
     <PackageReference Include="sqlite-net-pcl">
       <Version>1.8.116</Version>

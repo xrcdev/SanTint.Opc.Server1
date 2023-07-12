@@ -1,6 +1,8 @@
 ﻿
 using LibUA;
 using LibUA.Core;
+using LibUA.Security.Cryptography.X509Certificates;
+using LibUA.Security.Cryptography;
 
 using Newtonsoft.Json.Linq;
 
@@ -14,11 +16,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http.SelfHost;
 using System.Xml.Linq;
+using System.IO;
+using RSACng = LibUA.Security.Cryptography.RSACng;
 
 namespace SanTint.Opc.Server
 {
@@ -62,22 +68,37 @@ namespace SanTint.Opc.Server
         Dictionary<string, NodeVariable> AduSentDic = new Dictionary<string, NodeVariable>();
         Dictionary<string, NodeVariable> AduReceivedDic = new Dictionary<string, NodeVariable>();
         int _checkNewMessageInterval = 1000;
+        ApplicationDescription uaAppDesc;
+
+        X509Certificate2 appCertificate = null;
+        RSACryptoServiceProvider cryptPrivateKey = null;
+
+        public override X509Certificate2 ApplicationCertificate
+        {
+            get { return appCertificate; }
+        }
+
+        public override RSACryptoServiceProvider ApplicationPrivateKey
+        {
+            get { return cryptPrivateKey; }
+        }
         /// <summary>
         /// 初始化节点
         /// </summary>
         public OpcServer()
         {
-            ApplicationDescription uaAppDesc = new ApplicationDescription(
-                "urn:SanTintOpcServer",
-                "http://opcfoundation.org/Server",
-                new LocalizedText("en-US", "SanTint OPC UA Server"),
-                ApplicationType.Server, null, null, null);
+            LoadCertificateAndPrivateKey();
+            uaAppDesc = new ApplicationDescription(
+              "urn:SanTintOpcServer",
+              "http://SanTint.com/",
+              new LocalizedText("en-US", "SanTint OPC UA Server"),
+              ApplicationType.Server, null, null, null);
 
             var rootNodeId = new NodeId(2, "DataBlocksGlobal");
-            NodeObject ItemsRoot = new NodeObject(new NodeId(2, 0),
-                      new QualifiedName("DataBlocksGlobal"),
-                      new LocalizedText("DataBlocksGlobal"),
-                      new LocalizedText("DataBlocksGlobal"), (uint)(0xFFFFFFFF), (uint)(0xFFFFFFFF), 0);
+            ItemsRoot = new NodeObject(new NodeId(2, 0),
+                    new QualifiedName("DataBlocksGlobal"),
+                    new LocalizedText("DataBlocksGlobal"),
+                    new LocalizedText("DataBlocksGlobal"), (uint)(0xFFFFFFFF), (uint)(0xFFFFFFFF), 0);
 
             AddressSpaceTable[new NodeId(UAConst.ObjectsFolder)].References
                 .Add(new ReferenceNode(new NodeId(UAConst.Organizes), new NodeId(2, 0), false));
@@ -378,7 +399,7 @@ namespace SanTint.Opc.Server
             QuantityUOMNOde.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), QuantityUOMNOde.Id, true));
             AddressSpaceTable.TryAdd(QuantityUOMNOde.Id, QuantityUOMNOde);
             //add to AduSentDic
-            AduReceivedDic.Add(nameof(adu.QuantityUOM), QuantityUOMNOde);
+            AduSentDic.Add(nameof(adu.QuantityUOM), QuantityUOMNOde);
 
 
             lotNode = new NodeVariable(new NodeId(2, prefix + "Lot_Int32"),
@@ -700,6 +721,59 @@ namespace SanTint.Opc.Server
             #endregion
         }
 
+        private void LoadCertificateAndPrivateKey()
+        {
+            try
+            {
+                // Try to load existing (public key) and associated private key
+                appCertificate = new X509Certificate2("ServerCert.der");
+                cryptPrivateKey = new RSACryptoServiceProvider();
+
+                var rsaPrivParams = UASecurity.ImportRSAPrivateKey(File.ReadAllText("ServerKey.pem"));
+                cryptPrivateKey.ImportParameters(rsaPrivParams);
+            }
+            catch
+            {
+                // Make a new certificate (public key) and associated private key
+                var dn = new X500DistinguishedName("CN=Client certificate;OU=Demo organization", X500DistinguishedNameFlags.UseSemicolons);
+
+                var keyCreationParameters = new CngKeyCreationParameters()
+                {
+                    KeyUsage = CngKeyUsages.AllUsages,
+                    KeyCreationOptions = CngKeyCreationOptions.OverwriteExistingKey,
+                    ExportPolicy = CngExportPolicies.AllowPlaintextExport
+                };
+
+                keyCreationParameters.Parameters.Add(new CngProperty("Length", BitConverter.GetBytes(1024), CngPropertyOptions.None));
+                var cngKey = CngKey.Create(CngAlgorithm2.Rsa, "KeyName", keyCreationParameters);
+
+                var certParams = new X509CertificateCreationParameters(dn)
+                {
+                    StartTime = DateTime.Now,
+                    EndTime = DateTime.Now.AddYears(10),
+                    SignatureAlgorithm = X509CertificateSignatureAlgorithm.RsaSha1,
+                    TakeOwnershipOfKey = true
+                };
+
+                appCertificate = cngKey.CreateSelfSignedCertificate(certParams);
+
+                var certPrivateCNG = new RSACng(appCertificate.GetCngPrivateKey());
+                var certPrivateParams = certPrivateCNG.ExportParameters(true);
+
+                File.WriteAllText("ServerCert.der", UASecurity.ExportPEM(appCertificate));
+                File.WriteAllText("ServerKey.pem", UASecurity.ExportRSAPrivateKey(certPrivateParams));
+
+                cryptPrivateKey = new RSACryptoServiceProvider();
+                cryptPrivateKey.ImportParameters(certPrivateParams);
+            }
+        }
+
+        /// <summary>
+        /// 写节点
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="writeValues"></param>
+        /// <returns></returns>
         public override uint[] HandleWriteRequest(object session, WriteValue[] writeValues)
         {
             if (writeValues.Length > 0)
@@ -726,6 +800,197 @@ namespace SanTint.Opc.Server
 
             return base.HandleWriteRequest(session, writeValues);
         }
+
+        public override object SessionCreate(SessionCreationInfo sessionInfo)
+        {
+            // Optionally create and return a session object with sessionInfo if you want to track that same object
+            // when the client validates its session (anonymous, username + password or certificate).
+
+            return null;
+        }
+
+
+        public override bool SessionValidateClientApplication(object session,
+            ApplicationDescription clientApplicationDescription, byte[] clientCertificate, string sessionName)
+        {
+            // Update your session object with the client's UA application description
+            // Return true to allow the client, false to reject
+
+            return true;
+        }
+
+        public override void SessionRelease(object session)
+        {
+        }
+
+        public override bool SessionValidateClientUser(object session, object userIdentityToken)
+        {
+            if (userIdentityToken is UserIdentityAnonymousToken)
+            {
+                return true;
+            }
+            else if (userIdentityToken is UserIdentityUsernameToken)
+            {
+                var username = (userIdentityToken as UserIdentityUsernameToken).Username;
+                var password =
+                    (new UTF8Encoding()).GetString((userIdentityToken as UserIdentityUsernameToken).PasswordHash);
+
+                return true;
+            }
+
+            throw new Exception("Unhandled user identity token type");
+        }
+
+        private ApplicationDescription CreateApplicationDescriptionFromEndpointHint(string endpointUrlHint)
+        {
+            string[] discoveryUrls = uaAppDesc.DiscoveryUrls;
+            if (discoveryUrls == null && !string.IsNullOrEmpty(endpointUrlHint))
+            {
+                discoveryUrls = new string[] { endpointUrlHint };
+            }
+
+            return new ApplicationDescription(uaAppDesc.ApplicationUri, uaAppDesc.ProductUri, uaAppDesc.ApplicationName,
+                uaAppDesc.Type, uaAppDesc.GatewayServerUri, uaAppDesc.DiscoveryProfileUri, discoveryUrls);
+        }
+
+        public override IList<EndpointDescription> GetEndpointDescriptions(string endpointUrlHint)
+        {
+            var certStr = ApplicationCertificate.Export(X509ContentType.Cert);
+            ApplicationDescription localAppDesc = CreateApplicationDescriptionFromEndpointHint(endpointUrlHint);
+
+            var epNoSecurity = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.None, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            var epSignBasic128Rsa15 = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.Sign, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic128Rsa15],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            var epSignBasic256 = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.Sign, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            var epSignBasic256Sha256 = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.Sign, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            var epSignEncryptBasic128Rsa15 = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.SignAndEncrypt, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic128Rsa15],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            var epSignEncryptBasic256 = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.SignAndEncrypt, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            var epSignEncryptBasic256Sha256 = new EndpointDescription(
+                endpointUrlHint, localAppDesc, certStr,
+                MessageSecurityMode.SignAndEncrypt, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256],
+                new UserTokenPolicy[]
+                {
+                        new UserTokenPolicy("0", UserTokenType.Anonymous, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.None]),
+                        new UserTokenPolicy("1", UserTokenType.UserName, null, null, Types.SLSecurityPolicyUris[(int)SecurityPolicy.Basic256Sha256]),
+                }, Types.TransportProfileBinary, 0);
+
+            return new EndpointDescription[]
+            {
+                    epNoSecurity,
+                    epSignBasic256Sha256, epSignEncryptBasic256Sha256,
+                    epSignBasic128Rsa15, epSignEncryptBasic128Rsa15,
+                    epSignBasic256, epSignEncryptBasic256
+            };
+        }
+
+        public override ApplicationDescription GetApplicationDescription(string endpointUrlHint)
+        {
+            return CreateApplicationDescriptionFromEndpointHint(endpointUrlHint);
+        }
+
+        /// <summary>
+        /// 浏览某个节点
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        protected override DataValue HandleReadRequestInternal(NodeId id)
+        {
+            Node node = null;
+            if (id.NamespaceIndex == 2 &&
+                AddressSpaceTable.TryGetValue(id, out node))
+            {
+                //if (node == Node1D)
+                //{
+                //    return new DataValue(new float[] { 1.0f, 2.0f, 3.0f }, StatusCode.Good, DateTime.Now);
+                //}
+                //else if (node == Node2D)
+                //{
+                //    return new DataValue(new float[2, 2]
+                //    {
+                //        { 1.0f, 2.0f },
+                //        { 3.0f, 4.0f }
+                //    }, StatusCode.Good, DateTime.Now);
+                //}
+                //else
+                //{
+                //    return new DataValue(3.14159265, StatusCode.Good, DateTime.Now);
+                //}
+                if (node.BrowseName.Name.EndsWith("Boolean"))
+                {
+                    return new DataValue(true, StatusCode.Good, DateTime.Now);
+                }
+                else if (node.BrowseName.Name.EndsWith("String"))
+                {
+                    return new DataValue("Nice", StatusCode.Good, DateTime.Now);
+                }
+                else if (node.BrowseName.Name.EndsWith("Double"))
+                {
+                    if (node is NodeVariable nodeVar)
+                    {
+                        return new DataValue(nodeVar.Value, StatusCode.Good, DateTime.Now);
+                    }
+                    return new DataValue(3.14159265, StatusCode.Good, DateTime.Now);
+                }
+                else if (node.BrowseName.Name.EndsWith("DateTime"))
+                {
+                    return new DataValue(DateTime.Now, StatusCode.Good, DateTime.Now);
+                }
+                else if (node.BrowseName.Name.EndsWith("Int32"))
+                {
+                    return new DataValue(1, StatusCode.Good, DateTime.Now);
+                }
+            }
+
+            return base.HandleReadRequestInternal(id);
+        }
+
     }
 
     class OpcConsoleLogger : ILogger
