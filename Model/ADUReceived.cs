@@ -78,7 +78,7 @@ namespace SanTint.Opc.Server.Model
         /// 数据表示 GUID
         /// </summary>
         [Unique]
-        public string DataIdentifier { get; set; } = Guid.NewGuid().ToString();
+        public string DataIdentifier { get; set; } = Guid.NewGuid().ToString().ToLowerInvariant();
 
         /// <summary>
         /// 计划用量
@@ -89,7 +89,7 @@ namespace SanTint.Opc.Server.Model
         /// 是否成功反馈给客户系统
         /// </summary>
         public bool IsComplete { get; set; }
-        public DateTime CompleteTime { get; set; }
+        //public DateTime CompleteTime { get; set; }
         #endregion
     }
 

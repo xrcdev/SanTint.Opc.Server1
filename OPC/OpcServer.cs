@@ -225,7 +225,7 @@ namespace SanTint.Opc.Server
                                 if (consumptionAcceptedValue == null || !Convert.ToBoolean(consumptionAcceptedValue))
                                 {
                                     consumptionAcceptedValue = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
-                                    Thread.Sleep(500);
+                                    Thread.Sleep(300);
                                     continue;
                                 }
                                 else
@@ -237,7 +237,7 @@ namespace SanTint.Opc.Server
                                     Logger.Write("重置,开始下一轮ADUReceived,成功通知客户端", category: Common.Utility.CategoryLog.Info);
 
                                     item.IsComplete = true;
-                                    item.CompleteTime = DateTime.Now;
+                                    //item.CompleteTime = DateTime.Now;
                                     _dbHelper.UpdateADUReceived(item);
                                     break;
                                 }
@@ -251,7 +251,7 @@ namespace SanTint.Opc.Server
                 Logger.Write("检测ADUReceived是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
                 Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
             }
-            _notifyClientServerFinishedTimer.Change(200, _checkNewMessageInterval);
+            _notifyClientServerFinishedTimer.Change(1000, _checkNewMessageInterval);
         }
 
         private static bool CheckAduSendIsOk(ADUSent aduS)
@@ -369,9 +369,9 @@ namespace SanTint.Opc.Server
                         new QualifiedName("Quantity_Double"),
                               new LocalizedText("Quantity"),
                               new LocalizedText("Quantity"),
-                              (uint)(0xFFFFFFFF), (uint)(0xFFFFFFFF),
-                              AccessLevel.CurrentRead | AccessLevel.CurrentWrite | AccessLevel.HistoryRead | AccessLevel.HistoryWrite,
-                              AccessLevel.CurrentRead | AccessLevel.CurrentWrite | AccessLevel.HistoryRead | AccessLevel.HistoryWrite,
+                              0, 0,
+                              AccessLevel.CurrentRead | AccessLevel.CurrentWrite  ,
+                              AccessLevel.CurrentRead | AccessLevel.CurrentWrite  ,
                               0, false,
                               new NodeId(UAConst.Double));
 

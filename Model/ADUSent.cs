@@ -81,7 +81,7 @@ namespace SanTint.Opc.Server.Model
         /// </summary>
         /// <value> new GUID </value>
         [Unique]
-        public string DataIdentifier { get; set; } = Guid.NewGuid().ToString();
+        public string DataIdentifier { get; set; } = Guid.NewGuid().ToString().ToLowerInvariant();
 
         /// <summary>
         /// 新增标识：三华系统是否已经完成/或者已经接收

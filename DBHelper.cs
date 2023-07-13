@@ -111,9 +111,7 @@ namespace SanTint.Opc.Server
         #region ADUReceived
         public bool AddADUReceived(ADUReceived aduReceived)
         {
-            var db = new SQLite.SQLiteConnection(_dbPath);
-            var result = db.Insert(aduReceived);
-            db.Dispose();
+
 
             ADUSent queryADUSent = new ADUSent() { DataIdentifier = aduReceived.DataIdentifier };
             //更新ADUSent,三华已经完成
@@ -123,7 +121,11 @@ namespace SanTint.Opc.Server
                 t.IsSTComplete = true;
                 UpdateADUSent(t);
             });
-
+            aduReceived.ID=0;
+            aduReceived.IsComplete= false;
+            var db = new SQLite.SQLiteConnection(_dbPath);
+            var result = db.Insert(aduReceived);
+            db.Dispose();
             return result > 0;
         }
 
@@ -147,7 +149,7 @@ namespace SanTint.Opc.Server
         {
             var result = new List<ADUReceived>();
             var db = new SQLite.SQLiteConnection(_dbPath);
-            result = db.Query<ADUReceived>($"select * from ADUReceived where  IFNULL(IsSTComplete,0) = 0");
+            result = db.Query<ADUReceived>($"select * from ADUReceived where  IFNULL(IsComplete,0) = 0  ORDER BY  ID LIMIT 1");
             //result = db.Query<ADUSent>("select * from ADUSent where ProcessOrder like '%@ProcessOrderOrMaterialCode%' or MaterialCode like '%@ProcessOrderOrMaterialCode%'", ProcessOrderOrMaterialCode);
             //经测试无法使用参数形式,用于like查询
             return result;
