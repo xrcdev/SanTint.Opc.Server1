@@ -20,9 +20,9 @@ namespace SanTint.Opc.Server
         static void Main()
         {
             //TODO:发布时需要注释掉
-            ServerManagement.Start();
-            var quitEvent = CtrlCHandler();
-            quitEvent.WaitOne(-1);
+            //ServerManagement.Start();
+            //var quitEvent = CtrlCHandler();
+            //quitEvent.WaitOne(-1);
 
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]

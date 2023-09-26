@@ -27,14 +27,8 @@ namespace SanTint.Opc.Server
                 else strPort = strPort.Trim();
 
                 var serverConfig = new HttpSelfHostConfiguration($"http://{strIP}:{strPort}");
-                // 配置 http 服务的路由
-                //var cors = new EnableCorsAttribute("*", "*", "*");//跨域允许设置
-                //config.EnableCors(cors);
                 serverConfig.Formatters.XmlFormatter.SupportedMediaTypes.Clear();
-
-                //serverConfig.Formatters.Add(new PlainTextTypeFormatter());
                 serverConfig.Routes.MapHttpRoute("DefaultApi", "Api/{controller}/{action}/{id}", defaults: new { id = RouteParameter.Optional });
-                //serverConfig.MessageHandlers.Add(new CrosHandler());
                 httpSelfHostServer = new HttpSelfHostServer(serverConfig);
             }
         }
