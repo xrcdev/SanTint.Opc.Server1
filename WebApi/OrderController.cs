@@ -18,6 +18,21 @@ namespace SanTint.Opc.Server
     {
         static DBHelper _dbHelper = new DBHelper();
 
+        private static int _precision = 3;
+        static OrderController()
+        {
+            System.Configuration.Configuration config = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
+            var precision = config.AppSettings.Settings["Precision"].Value;
+            if (!string.IsNullOrWhiteSpace(precision))
+            {
+                var tempPrecision = 0;
+                if (int.TryParse(precision, out tempPrecision) && tempPrecision >= 2)
+                {
+                    _precision = tempPrecision;
+                }
+            }
+        }
+
         /// <summary>
         /// 查询待生产工单
         /// </summary>
@@ -84,6 +99,8 @@ namespace SanTint.Opc.Server
                     return httpReponseMessage;
                 }
                 received.IsComplete = false;
+                received.ActualQuantity = (Single)Math.Round(received.ActualQuantity, _precision);
+                DBHelper.CheckOrInitSqliteDb();
                 _dbHelper.AddADUReceived(received);
 
                 //添加到队列,定时任务通知客户端

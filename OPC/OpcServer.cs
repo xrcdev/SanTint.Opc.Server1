@@ -32,6 +32,7 @@ namespace SanTint.Opc.Server
 {
     public class OpcServerApp
     {
+
         LibUA.Server.Master _server = default;
         public void Start()
         {
@@ -44,6 +45,7 @@ namespace SanTint.Opc.Server
             var strPort = config.AppSettings.Settings["OpcPort"].Value;
             if (string.IsNullOrWhiteSpace(strPort)) strPort = "8089";
             else strPort = strPort.Trim();
+
             _server = new LibUA.Server.Master(_app, Convert.ToInt32(strPort), 10, 30, 100, new OpcConsoleLogger());
             _server.Start();
 
@@ -61,33 +63,64 @@ namespace SanTint.Opc.Server
 
     public class OpcServer : LibUA.Server.Application
     {
+        /// <summary>
+        /// 小数位数配置
+        /// </summary>
+        private static int _precision = 3;
         static DBHelper _dbHelper = new DBHelper();
 
         NodeObject ItemsRoot = default;
         public ConcurrentDictionary<NodeId, Node> MyAddressSpaceTable;
-        Dictionary<string, NodeVariable> AduSentDic = new Dictionary<string, NodeVariable>();
-        Dictionary<string, NodeVariable> AduReceivedDic = new Dictionary<string, NodeVariable>();
-        ApplicationDescription uaAppDesc;
-
-        X509Certificate2 appCertificate = null;
-        RSACryptoServiceProvider cryptPrivateKey = null;
+        Dictionary<string, NodeVariable> _aduSentDic = new Dictionary<string, NodeVariable>();
+        Dictionary<string, NodeVariable> _aduReceivedDic = new Dictionary<string, NodeVariable>();
+        private object _sendLocker = new object();
+        private object _receivedLocker = new object();
+        Dictionary<Type, UAConst> _typeMapper = new Dictionary<Type, UAConst>()
+        {
+            { typeof(string),UAConst.String },
+            { typeof(double),UAConst.Double },
+            { typeof(float),UAConst.Float },
+            { typeof(int),UAConst.Int32 },
+            { typeof(bool),UAConst.Boolean },
+            { typeof(DateTime),UAConst.DateTime }
+        };
+        ApplicationDescription _uaAppDesc;
+        X509Certificate2 _appCertificate = null;
+        RSACryptoServiceProvider _cryptPrivateKey = null;
         public override X509Certificate2 ApplicationCertificate
         {
-            get { return appCertificate; }
+            get { return _appCertificate; }
         }
 
         public override RSACryptoServiceProvider ApplicationPrivateKey
         {
-            get { return cryptPrivateKey; }
+            get { return _cryptPrivateKey; }
         }
-
+        Thread feedbackThread = null;
         /// <summary>
         /// 初始化节点
         /// </summary>
         public OpcServer()
         {
+            #region 初始化配置
+            System.Configuration.Configuration config = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
+            var precision = config.AppSettings.Settings["Precision"].Value;
+            if (!string.IsNullOrWhiteSpace(precision))
+            {
+                var tempPrecision = 0;
+                if (int.TryParse(precision, out tempPrecision))
+                {
+                    _precision = tempPrecision;
+                    if (_precision < 2)
+                    {
+                        _precision = 3;
+                    }
+                }
+            }
+            #endregion
+
             LoadCertificateAndPrivateKey();
-            uaAppDesc = new ApplicationDescription(
+            _uaAppDesc = new ApplicationDescription(
               "urn:SanTintOpcServer",
               "http://SanTint.com/",
               new LocalizedText("en-US", "SanTint OPC UA Server"),
@@ -118,7 +151,14 @@ namespace SanTint.Opc.Server
             //else strCheckNewMessageInterval = strCheckNewMessageInterval.Trim();
             //_checkNewMessageInterval = Convert.ToInt32(strCheckNewMessageInterval);
             //_checkNewMessageTimer = new System.Threading.Timer((obj) => CheckNewMessage(), null, 1000, _checkNewMessageInterval);
-            Task.Run(() => NotifyClientServerFinished());
+            if (feedbackThread == null)
+            {
+                feedbackThread = new Thread(NotifyClientServerFinished);
+                feedbackThread.Name = "feedbackThread";
+                feedbackThread.IsBackground = true;
+                feedbackThread.Start();
+            }
+            //Task.Run(() => NotifyClientServerFinished());
             //_notifyClientServerFinishedTimer = new Timer((obj) => NotifyClientServerFinished(), null, _checkNewMessageInterval, _checkNewMessageInterval);
         }
 
@@ -126,91 +166,147 @@ namespace SanTint.Opc.Server
 
         private void NotifyClientServerFinished()
         {
-            //_notifyClientServerFinishedTimer.Change(Timeout.Infinite, Timeout.Infinite);
             while (true)
             {
                 Thread.Sleep(1000);
-
                 try
                 {
                     var aduS = new ADUSent();
                     var aduR = new ADUReceived();
-                    var currentVal = AduReceivedDic[nameof(aduR.DosingCompleted)].Value;
-                    var currentConsumptionAcceptedVal = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
-                    if (currentVal != null && Convert.ToBoolean(currentVal) &&
-                        (currentConsumptionAcceptedVal != null && Convert.ToBoolean(currentConsumptionAcceptedVal) == false))
+
+                    #region 写数据前,需要ConsumptionAccepted=false;
+                    var currentConsumptionAcceptedVal = _aduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
+                    bool isConsumptionAccepted = false;
+                    //异常数据纠正
+                    if (currentConsumptionAcceptedVal == null || !bool.TryParse(currentConsumptionAcceptedVal.ToString(), out isConsumptionAccepted))
                     {
-                        Logger.Write("ADUReceived正在反馈", category: Common.Utility.CategoryLog.Info);
-                        continue;
+                        Logger.Write("Read ConsumptionAccepted value:" + currentConsumptionAcceptedVal?.ToString(), category: Common.Utility.CategoryLog.Error);
+                        Logger.Write("correct ConsumptionAccepted value to false.", category: Common.Utility.CategoryLog.Error);
+                        _aduReceivedDic[nameof(aduS.ConsumptionAccepted)].Value = false;
+                        OutputDataToLog();
                     }
-                    else
+                    if (isConsumptionAccepted) continue;
+                    #endregion
+
+
+                    var ADUReceiveds = _dbHelper.GetUncompleteADUReceived();
+                    if (ADUReceiveds != null && ADUReceiveds.Any())
                     {
-                        var ADUReceiveds = _dbHelper.GetUncompleteADUReceived();
-
-                        if (ADUReceiveds != null && ADUReceiveds.Any())
+                        foreach (ADUReceived item in ADUReceiveds)
                         {
-                            foreach (ADUReceived item in ADUReceiveds)
+                            //设置节点值
+                            _aduReceivedDic[nameof(item.ProcessOrder)].Value = item.ProcessOrder;
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.ProcessOrder)]);
+                            _aduReceivedDic[nameof(item.DateTime)].Value = item.DateTime;
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.DateTime)]);
+                            _aduReceivedDic[nameof(item.MaterialCode)].Value = item.MaterialCode;
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.MaterialCode)]);
+                            _aduReceivedDic[nameof(item.ActualQuantity)].Value = (float)Math.Round(item.ActualQuantity, _precision);
+                            _aduReceivedDic[nameof(item.QuantityUOM)].Value = item.QuantityUOM;
+                            _aduReceivedDic[nameof(item.Lot)].Value = item.Lot;
+                            _aduReceivedDic[nameof(item.PlantCode)].Value = item.PlantCode;
+                            _aduReceivedDic[nameof(item.DeviceIdentifier)].Value = item.DeviceIdentifier;
+                            _aduReceivedDic[nameof(item.VesselID)].Value = item.VesselID;
+                            _aduReceivedDic[nameof(item.ItemMaterial)].Value = item.ItemMaterial;
+                            _aduReceivedDic[nameof(item.BatchStepID)].Value = item.BatchStepID;
+                            _aduReceivedDic[nameof(item.Watchdog)].Value = item.Watchdog;
+                            //通知客户端,DosingCompleted=true
+                            _aduReceivedDic[nameof(item.DosingCompleted)].Value = true;
+
+
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.ActualQuantity)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.QuantityUOM)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.Lot)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.PlantCode)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.DeviceIdentifier)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.VesselID)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.ItemMaterial)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.BatchStepID)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.Watchdog)]);
+                            SetSingleDataTag(_aduReceivedDic[nameof(item.DosingCompleted)]);
+
+
+                            MonitorNotifyDataChange(_aduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(_aduReceivedDic[nameof(item.DosingCompleted)].Value));
+
+                            //等待客户端读取完成 ConsumptionAccepted=true
+                            object consumptionAcceptedValue = false;
+                            int tryTime = 0;
+                            while (true)
                             {
-                                //设置节点值
-                                AduReceivedDic[nameof(item.ProcessOrder)].Value = item.ProcessOrder;
-                                AduReceivedDic[nameof(item.DateTime)].Value = item.DateTime;
-                                AduReceivedDic[nameof(item.MaterialCode)].Value = item.MaterialCode;
-                                AduReceivedDic[nameof(item.ActualQuantity)].Value = item.ActualQuantity;
-                                AduReceivedDic[nameof(item.QuantityUOM)].Value = item.QuantityUOM;
-                                AduReceivedDic[nameof(item.Lot)].Value = item.Lot;
-                                AduReceivedDic[nameof(item.PlantCode)].Value = item.PlantCode;
-                                AduReceivedDic[nameof(item.DeviceIdentifier)].Value = item.DeviceIdentifier;
-                                AduReceivedDic[nameof(item.VesselID)].Value = item.VesselID;
-                                AduReceivedDic[nameof(item.ItemMaterial)].Value = item.ItemMaterial;
-                                AduReceivedDic[nameof(item.BatchStepID)].Value = item.BatchStepID;
-                                AduReceivedDic[nameof(item.Watchdog)].Value = item.Watchdog;
-                                //TODO:各项数据,应无须逐个通知客户端
-
-                                //通知客户端,DosingCompleted=true
-                                AduReceivedDic[nameof(item.DosingCompleted)].Value = true;
-                                MonitorNotifyDataChange(AduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(item.DosingCompleted)].Value));
-
-                                //等待客户端读取完成 ConsumptionAccepted=true
-                                object consumptionAcceptedValue = false;
-                                int maxTryTime = 5;
-                                while (maxTryTime > 0)
+                                currentConsumptionAcceptedVal = _aduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
+                                isConsumptionAccepted = false;
+                                //异常数据纠正
+                                if (currentConsumptionAcceptedVal == null || !bool.TryParse(currentConsumptionAcceptedVal.ToString(), out isConsumptionAccepted))
                                 {
-                                    consumptionAcceptedValue = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
-                                    if (consumptionAcceptedValue == null || !Convert.ToBoolean(consumptionAcceptedValue))
-                                    {
-                                        consumptionAcceptedValue = AduSentDic[nameof(aduS.ConsumptionAccepted)].Value;
-                                        maxTryTime -= 1;
-                                        Thread.Sleep(500);
-                                        continue;
-                                    }
-                                    Logger.Write("客户端已确认收到收到ADUReceived消息", category: Common.Utility.CategoryLog.Info);
-                                    AduReceivedDic[nameof(item.DosingCompleted)].Value = false;
-                                    MonitorNotifyDataChange(AduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(AduReceivedDic[nameof(item.DosingCompleted)].Value));
-                                    Logger.Write("重置,开始下一轮ADUReceived,成功通知客户端", category: Common.Utility.CategoryLog.Info);
+                                    Logger.Write("Read ConsumptionAccepted value:" + currentConsumptionAcceptedVal?.ToString(), category: Common.Utility.CategoryLog.Error);
+                                    Logger.Write("correct ConsumptionAccepted value to false", category: Common.Utility.CategoryLog.Error);
+                                    OutputDataToLog();
+                                    _aduReceivedDic[nameof(aduS.ConsumptionAccepted)].Value = false;
+                                    isConsumptionAccepted = false;
+                                }
 
-                                    item.IsComplete = true;
-                                    //item.CompleteTime = DateTime.Now;
-                                    _dbHelper.UpdateADUReceived(item);
-                                    break;
-                                }
-                                if (maxTryTime < 1)
+                                if (isConsumptionAccepted == false)
                                 {
-                                    Logger.Write("等待一段时间后未收到客户端的ConsumptionAccepted=1的消息", category: Common.Utility.CategoryLog.Warn);
+                                    tryTime += 1;
+                                    Thread.Sleep(1000);
+                                    if (tryTime > 0 && tryTime % 20 == 0)
+                                        Logger.Write($"等待{tryTime.ToString()}秒,未收到客户端的ConsumptionAccepted=1的消息 ", category: Common.Utility.CategoryLog.Error);
+                                    continue;
                                 }
+
+                                //put a delay of 10 seconds (1) after they have populated the consumption record, to ensure it sync across
+                                Logger.Write("【已收到】OPC Server Received  ConsumptionAccepted=1. delay 10 seconds,to ensure it sync across", category: Common.Utility.CategoryLog.Error);
+                                Thread.Sleep(10000);
+                                Logger.Write("Rested for 10 seconds. then set DosingCompleted=false and notify OPC client ", category: Common.Utility.CategoryLog.Error);
+                                _aduReceivedDic[nameof(item.DosingCompleted)].Value = false;
+                                MonitorNotifyDataChange(_aduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(_aduReceivedDic[nameof(item.DosingCompleted)].Value));
+                                Logger.Write("Notify client successfully, start next round", category: Common.Utility.CategoryLog.Error);
+
+                                item.IsComplete = true;
+                                _dbHelper.UpdateADUReceived(item);
+                                tryTime = 0;
+                                break;
                             }
                         }
                     }
+
                 }
                 catch (Exception ex)
                 {
-                    Logger.Write("检测ADUReceived是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
-                    Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
+                    try
+                    {
+                        Logger.Write("检测ADUReceived是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
+                        Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
+                    }
+                    catch (Exception ex1)
+                    {
+
+                    }
                 }
-
-
             }
 
             //_notifyClientServerFinishedTimer.Change(1000, _checkNewMessageInterval);
+        }
+
+        private void SetSingleDataTag(NodeVariable nodeVariable)
+        {
+            MonitorNotifyDataChange(nodeVariable.Id, new DataValue(nodeVariable.Value));
+        }
+
+        private void OutputDataToLog()
+        {
+            Logger.Write("Abnormal data detected.", category: Common.Utility.CategoryLog.Error);
+            Logger.Write("output values in aduSent.", category: Common.Utility.CategoryLog.Error);
+            foreach (var item in _aduSentDic)
+            {
+                Logger.Write($"{item.Key} => {item.Value?.Value ?? string.Empty}", category: Common.Utility.CategoryLog.Error);
+            }
+
+            Logger.Write("output values in aduReceived.", category: Common.Utility.CategoryLog.Error);
+            foreach (var item in _aduReceivedDic)
+            {
+                Logger.Write($"{item.Key} => {item.Value?.Value ?? string.Empty}", category: Common.Utility.CategoryLog.Error);
+            }
         }
 
         private static bool CheckAduSendIsOk(ADUSent aduS)
@@ -229,72 +325,72 @@ namespace SanTint.Opc.Server
         {
             try
             {
-                var processOrder = AduSentDic[nameof(aduS.ProcessOrder)].Value;
+                var processOrder = _aduSentDic[nameof(aduS.ProcessOrder)].Value;
                 if (processOrder != null)
                 {
                     aduS.ProcessOrder = processOrder.ToString();
                 }
-                var dateTime = AduSentDic[nameof(aduS.DateTime)].Value;
+                var dateTime = _aduSentDic[nameof(aduS.DateTime)].Value;
                 if (dateTime != null)
                 {
-                    aduS.DateTime = Convert.ToDateTime(dateTime);
+                    aduS.DateTime = dateTime.ToString();
                 }
                 //add MaterialCode
-                var materialCode = AduSentDic[nameof(aduS.MaterialCode)].Value;
+                var materialCode = _aduSentDic[nameof(aduS.MaterialCode)].Value;
                 if (materialCode != null)
                 {
                     aduS.MaterialCode = materialCode.ToString();
                 }
                 //Quantity
-                var quantity = AduSentDic[nameof(aduS.Quantity)].Value;
+                var quantity = _aduSentDic[nameof(aduS.Quantity)].Value;
                 if (quantity != null)
                 {
-                    aduS.Quantity = Convert.ToDouble(quantity);
+                    aduS.Quantity = (float)Math.Round(Convert.ToSingle(quantity), _precision);
                 }
                 //QuantityUOM
-                var quantityUOM = AduSentDic[nameof(aduS.QuantityUOM)].Value;
+                var quantityUOM = _aduSentDic[nameof(aduS.QuantityUOM)].Value;
                 if (quantityUOM != null)
                 {
                     aduS.QuantityUOM = quantityUOM.ToString();
                 }
 
-                var lot = AduSentDic[nameof(aduS.Lot)].Value;
+                var lot = _aduSentDic[nameof(aduS.Lot)].Value;
                 if (lot != null)
                 {
-                    aduS.Lot = Convert.ToInt32(lot);
+                    aduS.Lot = lot.ToString();
                 }
                 //add PlantCode
-                var plantCode = AduSentDic[nameof(aduS.PlantCode)].Value;
+                var plantCode = _aduSentDic[nameof(aduS.PlantCode)].Value;
                 if (plantCode != null)
                 {
                     aduS.PlantCode = plantCode.ToString();
                 }
 
-                var deviceIdentifier = AduSentDic[nameof(aduS.DeviceIdentifier)].Value;
+                var deviceIdentifier = _aduSentDic[nameof(aduS.DeviceIdentifier)].Value;
                 if (deviceIdentifier != null)
                 {
                     aduS.DeviceIdentifier = deviceIdentifier.ToString();
                 }
                 // add VesselID
-                var vesselID = AduSentDic[nameof(aduS.VesselID)].Value;
+                var vesselID = _aduSentDic[nameof(aduS.VesselID)].Value;
                 if (vesselID != null)
                 {
                     aduS.VesselID = vesselID.ToString();
                 }
                 //add ItemMaterial
-                var itemMaterial = AduSentDic[nameof(aduS.ItemMaterial)].Value;
+                var itemMaterial = _aduSentDic[nameof(aduS.ItemMaterial)].Value;
                 if (itemMaterial != null)
                 {
                     aduS.ItemMaterial = Convert.ToInt32(itemMaterial);
                 }
                 //add BatchStepID
-                var batchStepID = AduSentDic[nameof(aduS.BatchStepID)].Value;
+                var batchStepID = _aduSentDic[nameof(aduS.BatchStepID)].Value;
                 if (batchStepID != null)
                 {
                     aduS.BatchStepID = Convert.ToInt32(batchStepID);
                 }
 
-                var watchdog = AduSentDic[nameof(aduS.Watchdog)].Value;
+                var watchdog = _aduSentDic[nameof(aduS.Watchdog)].Value;
                 if (watchdog != null)
                 {
                     aduS.Watchdog = Convert.ToBoolean(watchdog);
@@ -312,242 +408,122 @@ namespace SanTint.Opc.Server
         }
 
         private void AddAduSend()
-		{
-			string prefix = "AduSend_";
-			Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-			string aduSendPre = config.AppSettings.Settings["AduSendPre"].Value;
-			bool flag = !string.IsNullOrWhiteSpace(aduSendPre);
-			if (flag)
-			{
-				prefix = aduSendPre;
-			}
-			string aduNodeName = prefix.TrimEnd(new char[] { '.' }).TrimEnd(new char[] { '_' }).Replace("\"", "");
-			NodeId aduSendNodeId = new NodeId(2, aduNodeName);
-			NodeObject aduSend = new NodeObject(aduSendNodeId, new QualifiedName(aduNodeName), new LocalizedText(aduNodeName), new LocalizedText("AduSend Message Model"), uint.MaxValue, uint.MaxValue, 0);
-			this.ItemsRoot.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), aduSend.Id, false));
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.ObjectsFolder), aduSend.Id, true));
-			this.AddressSpaceTable.TryAdd(aduSend.Id, aduSend);
-			ADUSent adu = new ADUSent();
-			NodeVariable quantityNodel = new NodeVariable(new NodeId(2, prefix + "Quantity"), new QualifiedName("Quantity"), new LocalizedText("Quantity"), new LocalizedText("Quantity"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Double), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), quantityNodel.Id, false));
-			quantityNodel.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), quantityNodel.Id, true));
-			this.AddressSpaceTable.TryAdd(quantityNodel.Id, quantityNodel);
-			this.AduSentDic.Add("Quantity", quantityNodel);
-			NodeVariable processOrderNode = new NodeVariable(new NodeId(2, prefix + "ProcessOrder".WrapQuote()), new QualifiedName("ProcessOrder"), new LocalizedText("ProcessOrder"), new LocalizedText("ProcessOrder"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderNode.Id, false));
-			processOrderNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderNode.Id, true));
-			this.AddressSpaceTable.TryAdd(processOrderNode.Id, processOrderNode);
-			this.AduSentDic.Add("ProcessOrder", processOrderNode);
-			NodeVariable dateTimeNode = new NodeVariable(new NodeId(2, prefix + "DateTime".WrapQuote()), new QualifiedName("DateTime"), new LocalizedText("DateTime"), new LocalizedText("DateTime"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 1000.0, false, new NodeId(UAConst.DateTime), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dateTimeNode.Id, false));
-			dateTimeNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dateTimeNode.Id, true));
-			this.AddressSpaceTable.TryAdd(dateTimeNode.Id, dateTimeNode);
-			this.AduSentDic.Add("DateTime", dateTimeNode);
-			NodeVariable MaterialCodeNode = new NodeVariable(new NodeId(2, prefix + "MaterialCode".WrapQuote()), new QualifiedName("MaterialCode"), new LocalizedText("MaterialCode"), new LocalizedText("MaterialCode"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), MaterialCodeNode.Id, false));
-			MaterialCodeNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), MaterialCodeNode.Id, true));
-			this.AddressSpaceTable.TryAdd(MaterialCodeNode.Id, MaterialCodeNode);
-			this.AduSentDic.Add("MaterialCode", MaterialCodeNode);
-			NodeVariable QuantityUOMNOde = new NodeVariable(new NodeId(2, prefix + "QuantityUOM".WrapQuote()), new QualifiedName("QuantityUOM"), new LocalizedText("QuantityUOM"), new LocalizedText("QuantityUOM"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), QuantityUOMNOde.Id, false));
-			QuantityUOMNOde.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), QuantityUOMNOde.Id, true));
-			this.AddressSpaceTable.TryAdd(QuantityUOMNOde.Id, QuantityUOMNOde);
-			this.AduSentDic.Add("QuantityUOM", QuantityUOMNOde);
-			NodeVariable lotNode = new NodeVariable(new NodeId(2, prefix + "Lot".WrapQuote()), new QualifiedName("Lot"), new LocalizedText("Lot"), new LocalizedText("Lot"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Int32), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), lotNode.Id, false));
-			lotNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), lotNode.Id, true));
-			this.AddressSpaceTable.TryAdd(lotNode.Id, lotNode);
-			this.AduSentDic.Add("Lot", lotNode);
-			NodeVariable plantCodeNode = new NodeVariable(new NodeId(2, prefix + "PlantCode".WrapQuote()), new QualifiedName("PlantCode"), new LocalizedText("PlantCode"), new LocalizedText("PlantCode"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), plantCodeNode.Id, false));
-			plantCodeNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), plantCodeNode.Id, true));
-			this.AddressSpaceTable.TryAdd(plantCodeNode.Id, plantCodeNode);
-			this.AduSentDic.Add("PlantCode", plantCodeNode);
-			NodeVariable deviceIdentifierNode = new NodeVariable(new NodeId(2, prefix + "DeviceIdentifier".WrapQuote()), new QualifiedName("DeviceIdentifier"), new LocalizedText("DeviceIdentifier"), new LocalizedText("DeviceIdentifier"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), deviceIdentifierNode.Id, false));
-			deviceIdentifierNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), deviceIdentifierNode.Id, true));
-			this.AddressSpaceTable.TryAdd(deviceIdentifierNode.Id, deviceIdentifierNode);
-			this.AduSentDic.Add("DeviceIdentifier", deviceIdentifierNode);
-			NodeVariable vesselIDNode = new NodeVariable(new NodeId(2, prefix + "VesselID".WrapQuote()), new QualifiedName("VesselID"), new LocalizedText("VesselID"), new LocalizedText("VesselID"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), vesselIDNode.Id, false));
-			vesselIDNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), vesselIDNode.Id, true));
-			this.AddressSpaceTable.TryAdd(vesselIDNode.Id, vesselIDNode);
-			this.AduSentDic.Add("VesselID", vesselIDNode);
-			NodeVariable itemMaterialNode = new NodeVariable(new NodeId(2, prefix + "ItemMaterial".WrapQuote()), new QualifiedName("ItemMaterial"), new LocalizedText("ItemMaterial"), new LocalizedText("ItemMaterial"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Int32), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), itemMaterialNode.Id, false));
-			itemMaterialNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), itemMaterialNode.Id, true));
-			this.AddressSpaceTable.TryAdd(itemMaterialNode.Id, itemMaterialNode);
-			this.AduSentDic.Add("ItemMaterial", itemMaterialNode);
-			NodeVariable batchStepIDNode = new NodeVariable(new NodeId(2, prefix + "BatchStepID".WrapQuote()), new QualifiedName("BatchStepID"), new LocalizedText("BatchStepID"), new LocalizedText("BatchStepID"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Int32), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), batchStepIDNode.Id, false));
-			batchStepIDNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), batchStepIDNode.Id, true));
-			this.AddressSpaceTable.TryAdd(batchStepIDNode.Id, batchStepIDNode);
-			this.AduSentDic.Add("BatchStepID", batchStepIDNode);
-			NodeVariable newDosingRequestNode = new NodeVariable(new NodeId(2, prefix + "NewDosingRequest".WrapQuote()), new QualifiedName("NewDosingRequest"), new LocalizedText("NewDosingRequest"), new LocalizedText("NewDosingRequest"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			newDosingRequestNode.Value = false;
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), newDosingRequestNode.Id, false));
-			newDosingRequestNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), newDosingRequestNode.Id, true));
-			this.AddressSpaceTable.TryAdd(newDosingRequestNode.Id, newDosingRequestNode);
-			this.AduSentDic.Add("NewDosingRequest", newDosingRequestNode);
-			NodeVariable consumptionAcceptedNode = new NodeVariable(new NodeId(2, prefix + "ConsumptionAccepted".WrapQuote()), new QualifiedName("ConsumptionAccepted"), new LocalizedText("ConsumptionAccepted"), new LocalizedText("ConsumptionAccepted"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			consumptionAcceptedNode.Value = false;
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), consumptionAcceptedNode.Id, false));
-			consumptionAcceptedNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), consumptionAcceptedNode.Id, true));
-			this.AddressSpaceTable.TryAdd(consumptionAcceptedNode.Id, consumptionAcceptedNode);
-			this.AduSentDic.Add("ConsumptionAccepted", consumptionAcceptedNode);
-			NodeVariable processOrderDataSentNode = new NodeVariable(new NodeId(2, prefix + "ProcessOrderDataSent".WrapQuote()), new QualifiedName("ProcessOrderDataSent"), new LocalizedText("ProcessOrderDataSent"), new LocalizedText("ProcessOrderDataSent"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			processOrderDataSentNode.Value = false;
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderDataSentNode.Id, false));
-			processOrderDataSentNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderDataSentNode.Id, true));
-			this.AddressSpaceTable.TryAdd(processOrderDataSentNode.Id, processOrderDataSentNode);
-			this.AduSentDic.Add("ProcessOrderDataSent", processOrderDataSentNode);
-			NodeVariable watchdogNode = new NodeVariable(new NodeId(2, prefix + "Watchdog".WrapQuote()), new QualifiedName("Watchdog"), new LocalizedText("Watchdog"), new LocalizedText("Watchdog"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), watchdogNode.Id, false));
-			watchdogNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), watchdogNode.Id, true));
-			this.AddressSpaceTable.TryAdd(watchdogNode.Id, watchdogNode);
-			this.AduSentDic.Add("Watchdog", watchdogNode);
-		}
+        {
+            string prefix = "AduSend_";
+            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            string aduSendPre = config.AppSettings.Settings["AduSendPre"].Value;
+            bool flag = !string.IsNullOrWhiteSpace(aduSendPre);
+            if (flag)
+            {
+                prefix = aduSendPre;
+            }
+            string aduNodeName = prefix.TrimEnd(new char[] { '.' }).TrimEnd(new char[] { '_' }).Replace("\"", "");
+            NodeId aduSendNodeId = new NodeId(2, aduNodeName);
+            NodeObject aduSend = new NodeObject(aduSendNodeId, new QualifiedName(aduNodeName), new LocalizedText(aduNodeName), new LocalizedText("AduSend Message Model"), uint.MaxValue, uint.MaxValue, 0);
+            this.ItemsRoot.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), aduSend.Id, false));
+            aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.ObjectsFolder), aduSend.Id, true));
+            this.AddressSpaceTable.TryAdd(aduSend.Id, aduSend);
 
-         private void AddAduReceived()
-		{
-			string prefix = "AduReceived_";
-			Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-			string preConfig = config.AppSettings.Settings["AduReceivedPre"].Value;
-			bool flag = !string.IsNullOrWhiteSpace(preConfig);
-			if (flag)
-			{
-				prefix = preConfig;
-			}
-			string aduNodeName = prefix.TrimEnd(new char[] { '.' }).TrimEnd(new char[] { '_' }).Replace("\"", "");
-			NodeId ADUReceivedNodeId = new NodeId(2, aduNodeName);
-			NodeObject ADUReceived = new NodeObject(ADUReceivedNodeId, new QualifiedName(aduNodeName), new LocalizedText(aduNodeName), new LocalizedText("ADUReceived Message Model"), 0U, 0U, 0);
-			this.ItemsRoot.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), ADUReceived.Id, false));
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.ObjectsFolder), ADUReceived.Id, true));
-			this.AddressSpaceTable.TryAdd(ADUReceived.Id, ADUReceived);
-			ADUReceived adu = new ADUReceived();
-			NodeVariable processOrderNode = new NodeVariable(new NodeId(2, prefix + "ProcessOrder".WrapQuote()), new QualifiedName("ProcessOrder"), new LocalizedText("ProcessOrder"), new LocalizedText("ProcessOrder"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderNode.Id, false));
-			processOrderNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), processOrderNode.Id, true));
-			this.AddressSpaceTable.TryAdd(processOrderNode.Id, processOrderNode);
-			this.AduReceivedDic.Add("ProcessOrder", processOrderNode);
-			NodeVariable dateTimeNode = new NodeVariable(new NodeId(2, prefix + "DateTime".WrapQuote()), new QualifiedName("DateTime"), new LocalizedText("DateTime"), new LocalizedText("DateTime"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.DateTime), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dateTimeNode.Id, false));
-			dateTimeNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dateTimeNode.Id, true));
-			this.AddressSpaceTable.TryAdd(dateTimeNode.Id, dateTimeNode);
-			this.AduReceivedDic.Add("DateTime", dateTimeNode);
-			NodeVariable materialCodeNode = new NodeVariable(new NodeId(2, prefix + "MaterialCode".WrapQuote()), new QualifiedName("MaterialCode"), new LocalizedText("MaterialCode"), new LocalizedText("MaterialCode"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), materialCodeNode.Id, false));
-			materialCodeNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), materialCodeNode.Id, true));
-			this.AddressSpaceTable.TryAdd(materialCodeNode.Id, materialCodeNode);
-			this.AduReceivedDic.Add("MaterialCode", materialCodeNode);
-			NodeVariable actualQuantityNode = new NodeVariable(new NodeId(2, prefix + "ActualQuantity".WrapQuote()), new QualifiedName("ActualQuantity"), new LocalizedText("ActualQuantity"), new LocalizedText("ActualQuantity"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Double), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), actualQuantityNode.Id, false));
-			actualQuantityNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), actualQuantityNode.Id, true));
-			this.AddressSpaceTable.TryAdd(actualQuantityNode.Id, actualQuantityNode);
-			this.AduReceivedDic.Add("ActualQuantity", actualQuantityNode);
-			NodeVariable quantityUOMNode = new NodeVariable(new NodeId(2, prefix + "QuantityUOM".WrapQuote()), new QualifiedName("QuantityUOM"), new LocalizedText("QuantityUOM"), new LocalizedText("QuantityUOM"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), quantityUOMNode.Id, false));
-			quantityUOMNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), quantityUOMNode.Id, true));
-			this.AddressSpaceTable.TryAdd(quantityUOMNode.Id, quantityUOMNode);
-			this.AduReceivedDic.Add("QuantityUOM", quantityUOMNode);
-			NodeVariable lotNode = new NodeVariable(new NodeId(2, prefix + "Lot".WrapQuote()), new QualifiedName("Lot"), new LocalizedText("Lot"), new LocalizedText("Lot"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Int32), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), lotNode.Id, false));
-			lotNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), lotNode.Id, true));
-			this.AddressSpaceTable.TryAdd(lotNode.Id, lotNode);
-			this.AduReceivedDic.Add("Lot", lotNode);
-			NodeVariable plantCodeNode = new NodeVariable(new NodeId(2, prefix + "PlantCode".WrapQuote()), new QualifiedName("PlantCode"), new LocalizedText("PlantCode"), new LocalizedText("PlantCode"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), plantCodeNode.Id, false));
-			plantCodeNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), plantCodeNode.Id, true));
-			this.AddressSpaceTable.TryAdd(plantCodeNode.Id, plantCodeNode);
-			this.AduReceivedDic.Add("PlantCode", plantCodeNode);
-			NodeVariable deviceIdentifierNode = new NodeVariable(new NodeId(2, prefix + "DeviceIdentifier".WrapQuote()), new QualifiedName("DeviceIdentifier"), new LocalizedText("DeviceIdentifier"), new LocalizedText("DeviceIdentifier"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), deviceIdentifierNode.Id, false));
-			deviceIdentifierNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), deviceIdentifierNode.Id, true));
-			this.AddressSpaceTable.TryAdd(deviceIdentifierNode.Id, deviceIdentifierNode);
-			this.AduReceivedDic.Add("DeviceIdentifier", deviceIdentifierNode);
-			NodeVariable vesselIDNode = new NodeVariable(new NodeId(2, prefix + "VesselID".WrapQuote()), new QualifiedName("VesselID"), new LocalizedText("VesselID"), new LocalizedText("VesselID"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.String), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), vesselIDNode.Id, false));
-			vesselIDNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), vesselIDNode.Id, true));
-			this.AddressSpaceTable.TryAdd(vesselIDNode.Id, vesselIDNode);
-			this.AduReceivedDic.Add("VesselID", vesselIDNode);
-			NodeVariable itemMaterialNode = new NodeVariable(new NodeId(2, prefix + "ItemMaterial".WrapQuote()), new QualifiedName("ItemMaterial"), new LocalizedText("ItemMaterial"), new LocalizedText("ItemMaterial"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Int32), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), itemMaterialNode.Id, false));
-			itemMaterialNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), itemMaterialNode.Id, true));
-			this.AddressSpaceTable.TryAdd(itemMaterialNode.Id, itemMaterialNode);
-			this.AduReceivedDic.Add("ItemMaterial", itemMaterialNode);
-			NodeVariable batchStepIDNode = new NodeVariable(new NodeId(2, prefix + "BatchStepID".WrapQuote()), new QualifiedName("BatchStepID"), new LocalizedText("BatchStepID"), new LocalizedText("BatchStepID"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Int32), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), batchStepIDNode.Id, false));
-			batchStepIDNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), batchStepIDNode.Id, true));
-			this.AddressSpaceTable.TryAdd(batchStepIDNode.Id, batchStepIDNode);
-			this.AduReceivedDic.Add("BatchStepID", batchStepIDNode);
-			NodeVariable readyForNewDosingNode = new NodeVariable(new NodeId(2, prefix + "ReadyForNewDosing".WrapQuote()), new QualifiedName("ReadyForNewDosing"), new LocalizedText("ReadyForNewDosing"), new LocalizedText("ReadyForNewDosing"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			readyForNewDosingNode.Value = false;
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), readyForNewDosingNode.Id, false));
-			readyForNewDosingNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), readyForNewDosingNode.Id, true));
-			this.AddressSpaceTable.TryAdd(readyForNewDosingNode.Id, readyForNewDosingNode);
-			this.AduReceivedDic.Add("ReadyForNewDosing", readyForNewDosingNode);
-			NodeVariable dosingCompletedNode = new NodeVariable(new NodeId(2, prefix + "DosingCompleted".WrapQuote()), new QualifiedName("DosingCompleted"), new LocalizedText("DosingCompleted"), new LocalizedText("DosingCompleted"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			dosingCompletedNode.Value = false;
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dosingCompletedNode.Id, false));
-			dosingCompletedNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), dosingCompletedNode.Id, true));
-			this.AddressSpaceTable.TryAdd(dosingCompletedNode.Id, dosingCompletedNode);
-			this.AduReceivedDic.Add("DosingCompleted", dosingCompletedNode);
-			NodeVariable requestAcceptedNode = new NodeVariable(new NodeId(2, prefix + "RequestAccepted".WrapQuote()), new QualifiedName("RequestAccepted"), new LocalizedText("RequestAccepted"), new LocalizedText("RequestAccepted"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			requestAcceptedNode.Value = true;
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), requestAcceptedNode.Id, false));
-			requestAcceptedNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), requestAcceptedNode.Id, true));
-			this.AddressSpaceTable.TryAdd(requestAcceptedNode.Id, requestAcceptedNode);
-			this.AduReceivedDic.Add("RequestAccepted", requestAcceptedNode);
-			NodeVariable watchdogNode = new NodeVariable(new NodeId(2, prefix + "Watchdog".WrapQuote()), new QualifiedName("Watchdog"), new LocalizedText("Watchdog"), new LocalizedText("Watchdog"), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(UAConst.Boolean), ValueRank.Scalar);
-			ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), watchdogNode.Id, false));
-			watchdogNode.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), watchdogNode.Id, true));
-			this.AddressSpaceTable.TryAdd(watchdogNode.Id, watchdogNode);
-			this.AduReceivedDic.Add("Watchdog", watchdogNode);
-		}
+            ADUSent adu = new ADUSent();
+            var excludes = "ID,DataIdentifier,IsSTComplete".Split(",".ToCharArray(), options: StringSplitOptions.RemoveEmptyEntries);
+            var properties = adu.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                var nodeName = property.Name;
+                if (excludes.Contains(nodeName)) continue;
+                AddReadWriteDataNode(this._aduSentDic, prefix, aduSend, property.PropertyType, nodeName);
+            }
+        }
+
+
+        private void AddReadWriteDataNode(Dictionary<string, NodeVariable> nodeDic, string prefix, NodeObject aduSend, Type nodeType, string nodeName)
+        {
+            NodeVariable nVar = new NodeVariable(new NodeId(2, prefix + nodeName.WrapQuote()), new QualifiedName(nodeName), new LocalizedText(nodeName), new LocalizedText(nodeName), 0U, 0U, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, AccessLevel.CurrentRead | AccessLevel.CurrentWrite, 0.0, false, new NodeId(_typeMapper[nodeType]), ValueRank.Scalar);
+            if (nodeType == typeof(bool))
+                nVar.Value = nodeName == "RequestAccepted";
+            aduSend.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), nVar.Id, false));
+            nVar.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), nVar.Id, true));
+            this.AddressSpaceTable.TryAdd(nVar.Id, nVar);
+            nodeDic.Add(nodeName, nVar);
+        }
+
+        private void AddAduReceived()
+        {
+            string prefix = "AduReceived_";
+            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            string preConfig = config.AppSettings.Settings["AduReceivedPre"].Value;
+            bool flag = !string.IsNullOrWhiteSpace(preConfig);
+            if (flag)
+            {
+                prefix = preConfig;
+            }
+            string aduNodeName = prefix.TrimEnd(new char[] { '.' }).TrimEnd(new char[] { '_' }).Replace("\"", "");
+            NodeId ADUReceivedNodeId = new NodeId(2, aduNodeName);
+            NodeObject ADUReceived = new NodeObject(ADUReceivedNodeId, new QualifiedName(aduNodeName), new LocalizedText(aduNodeName), new LocalizedText("ADUReceived Message Model"), 0U, 0U, 0);
+            this.ItemsRoot.References.Add(new ReferenceNode(new NodeId(UAConst.Organizes), ADUReceived.Id, false));
+            ADUReceived.References.Add(new ReferenceNode(new NodeId(UAConst.ObjectsFolder), ADUReceived.Id, true));
+            this.AddressSpaceTable.TryAdd(ADUReceived.Id, ADUReceived);
+            ADUReceived adu = new ADUReceived();
+            var excludes = "ID,Quantity,DataIdentifier,IsSTComplete".Split(",".ToCharArray(), options: StringSplitOptions.RemoveEmptyEntries);
+            var properties = adu.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                var nodeName = property.Name;
+                if (excludes.Contains(nodeName)) continue;
+                AddReadWriteDataNode(this._aduReceivedDic, prefix, ADUReceived, property.PropertyType, nodeName);
+            }
+        }
         private void LoadCertificateAndPrivateKey()
         {
             try
             {
                 // Try to load existing (public key) and associated private key
-                appCertificate = new X509Certificate2("ServerCert.der");
-                cryptPrivateKey = new RSACryptoServiceProvider();
+                _appCertificate = new X509Certificate2("ServerCert.der");
+                _cryptPrivateKey = new RSACryptoServiceProvider();
 
                 var rsaPrivParams = UASecurity.ImportRSAPrivateKey(File.ReadAllText("ServerKey.pem"));
-                cryptPrivateKey.ImportParameters(rsaPrivParams);
+                _cryptPrivateKey.ImportParameters(rsaPrivParams);
             }
-            catch
+            catch (Exception ex)
             {
-                // Make a new certificate (public key) and associated private key
-                var dn = new X500DistinguishedName("CN=Client certificate;OU=Demo organization", X500DistinguishedNameFlags.UseSemicolons);
-
-                var keyCreationParameters = new CngKeyCreationParameters()
+                try
                 {
-                    KeyUsage = CngKeyUsages.AllUsages,
-                    KeyCreationOptions = CngKeyCreationOptions.OverwriteExistingKey,
-                    ExportPolicy = CngExportPolicies.AllowPlaintextExport
-                };
+                    // Make a new certificate (public key) and associated private key
+                    var dn = new X500DistinguishedName("CN=Client certificate;OU=Demo organization", X500DistinguishedNameFlags.UseSemicolons);
 
-                keyCreationParameters.Parameters.Add(new CngProperty("Length", BitConverter.GetBytes(1024), CngPropertyOptions.None));
-                var cngKey = CngKey.Create(CngAlgorithm2.Rsa, "KeyName", keyCreationParameters);
+                    var keyCreationParameters = new CngKeyCreationParameters()
+                    {
+                        KeyUsage = CngKeyUsages.AllUsages,
+                        KeyCreationOptions = CngKeyCreationOptions.OverwriteExistingKey,
+                        ExportPolicy = CngExportPolicies.AllowPlaintextExport
+                    };
 
-                var certParams = new X509CertificateCreationParameters(dn)
+                    keyCreationParameters.Parameters.Add(new CngProperty("Length", BitConverter.GetBytes(1024), CngPropertyOptions.None));
+                    var cngKey = CngKey.Create(CngAlgorithm2.Rsa, "KeyName", keyCreationParameters);
+
+                    var certParams = new X509CertificateCreationParameters(dn)
+                    {
+                        StartTime = DateTime.Now,
+                        EndTime = DateTime.Now.AddYears(10),
+                        SignatureAlgorithm = X509CertificateSignatureAlgorithm.RsaSha1,
+                        TakeOwnershipOfKey = true
+                    };
+
+                    _appCertificate = cngKey.CreateSelfSignedCertificate(certParams);
+
+                    var certPrivateCNG = new RSACng(_appCertificate.GetCngPrivateKey());
+                    var certPrivateParams = certPrivateCNG.ExportParameters(true);
+
+                    File.WriteAllText("ServerCert.der", UASecurity.ExportPEM(_appCertificate));
+                    File.WriteAllText("ServerKey.pem", UASecurity.ExportRSAPrivateKey(certPrivateParams));
+
+                    _cryptPrivateKey = new RSACryptoServiceProvider();
+                    _cryptPrivateKey.ImportParameters(certPrivateParams);
+                }
+                catch (Exception ex1)
                 {
-                    StartTime = DateTime.Now,
-                    EndTime = DateTime.Now.AddYears(10),
-                    SignatureAlgorithm = X509CertificateSignatureAlgorithm.RsaSha1,
-                    TakeOwnershipOfKey = true
-                };
 
-                appCertificate = cngKey.CreateSelfSignedCertificate(certParams);
-
-                var certPrivateCNG = new RSACng(appCertificate.GetCngPrivateKey());
-                var certPrivateParams = certPrivateCNG.ExportParameters(true);
-
-                File.WriteAllText("ServerCert.der", UASecurity.ExportPEM(appCertificate));
-                File.WriteAllText("ServerKey.pem", UASecurity.ExportRSAPrivateKey(certPrivateParams));
-
-                cryptPrivateKey = new RSACryptoServiceProvider();
-                cryptPrivateKey.ImportParameters(certPrivateParams);
+                }
             }
         }
         #endregion
@@ -562,200 +538,67 @@ namespace SanTint.Opc.Server
         /// <returns></returns>
         protected override DataValue HandleReadRequestInternal(NodeId id)
         {
-            Node node = null;
-            bool flag = id.NamespaceIndex == 2 && this.AddressSpaceTable.TryGetValue(id, out node);
-            if (flag)
+            if (id.NamespaceIndex == 2 && this.AddressSpaceTable.TryGetValue(id, out Node node))
             {
                 NodeVariable nodeVariable = node as NodeVariable;
-                bool flag2 = nodeVariable != null;
-                if (flag2)
+                if (nodeVariable != null && nodeVariable.Value == null)
                 {
-                    switch (nodeVariable.DataType.NumericIdentifier)
-                    {
-                        case 1:
-                            {
-                                bool flag3 = nodeVariable.Value == null;
-                                if (flag3)
-                                {
-                                    nodeVariable.Value = new DataValue(false, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 2:
-                            {
-                                bool flag4 = nodeVariable.Value == null;
-                                if (flag4)
-                                {
-                                    nodeVariable.Value = new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 3:
-                            {
-                                bool flag5 = nodeVariable.Value == null;
-                                if (flag5)
-                                {
-                                    nodeVariable.Value = new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 4:
-                            {
-                                bool flag6 = nodeVariable.Value == null;
-                                if (flag6)
-                                {
-                                    nodeVariable.Value = new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 5:
-                            {
-                                bool flag7 = nodeVariable.Value == null;
-                                if (flag7)
-                                {
-                                    nodeVariable.Value = new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 6:
-                            {
-                                bool flag8 = nodeVariable.Value == null;
-                                if (flag8)
-                                {
-                                    nodeVariable.Value = new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 7:
-                            {
-                                bool flag9 = nodeVariable.Value == null;
-                                if (flag9)
-                                {
-                                    nodeVariable.Value = new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 8:
-                            {
-                                bool flag10 = nodeVariable.Value == null;
-                                if (flag10)
-                                {
-                                    nodeVariable.Value = new DataValue(0L, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 9:
-                            {
-                                bool flag11 = nodeVariable.Value == null;
-                                if (flag11)
-                                {
-                                    nodeVariable.Value = new DataValue(0L, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 10:
-                            {
-                                bool flag12 = nodeVariable.Value == null;
-                                if (flag12)
-                                {
-                                    nodeVariable.Value = new DataValue(0f, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 11:
-                            {
-                                bool flag13 = nodeVariable.Value == null;
-                                if (flag13)
-                                {
-                                    nodeVariable.Value = new DataValue(0.0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 12:
-                            {
-                                bool flag14 = nodeVariable.Value == null;
-                                if (flag14)
-                                {
-                                    nodeVariable.Value = new DataValue(string.Empty, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 13:
-                            {
-                                bool flag15 = nodeVariable.Value == null;
-                                if (flag15)
-                                {
-                                    nodeVariable.Value = new DataValue(new DateTime(1900, 1, 1), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 14:
-                            {
-                                bool flag16 = nodeVariable.Value == null;
-                                if (flag16)
-                                {
-                                    nodeVariable.Value = new DataValue(Guid.NewGuid(), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 15:
-                            {
-                                bool flag17 = nodeVariable.Value == null;
-                                if (flag17)
-                                {
-                                    nodeVariable.Value = new DataValue(new byte[0], new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 16:
-                            {
-                                bool flag18 = nodeVariable.Value == null;
-                                if (flag18)
-                                {
-                                    nodeVariable.Value = new DataValue(new XElement("element"), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 19:
-                            {
-                                bool flag19 = nodeVariable.Value == null;
-                                if (flag19)
-                                {
-                                    nodeVariable.Value = new DataValue(StatusCode.Good, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 20:
-                            {
-                                bool flag20 = nodeVariable.Value == null;
-                                if (flag20)
-                                {
-                                    nodeVariable.Value = new DataValue(default(QualifiedName), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 21:
-                            {
-                                bool flag21 = nodeVariable.Value == null;
-                                if (flag21)
-                                {
-                                    nodeVariable.Value = new DataValue(new LocalizedText(""), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                        case 22:
-                            {
-                                bool flag22 = nodeVariable.Value == null;
-                                if (flag22)
-                                {
-                                    nodeVariable.Value = new DataValue(new ExtensionObject(), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                                }
-                                return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
-                            }
-                    }
+                    nodeVariable.Value = GetDefaultValue(nodeVariable.DataType.NumericIdentifier);
+                }
+
+                try
+                {
+                    return new DataValue(nodeVariable.Value, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Write("MonitorNotifyDataChange出现异常:" + ex.Message, Common.Utility.CategoryLog.Error);
                 }
             }
             return base.HandleReadRequestInternal(id);
+        }
+
+        private DataValue GetDefaultValue(uint dataType)
+        {
+            switch (dataType)
+            {
+                case 1:
+                    return new DataValue(false, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                    return new DataValue(0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 8:
+                case 9:
+                    return new DataValue(0L, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 10:
+                    return new DataValue(0f, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 11:
+                    return new DataValue(0.0, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 12:
+                    return new DataValue(string.Empty, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 13:
+                    return new DataValue(new DateTime(1900, 1, 1), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 14:
+                    return new DataValue(Guid.NewGuid(), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 15:
+                    return new DataValue(new byte[0], new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 16:
+                    return new DataValue(new XElement("element"), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 19:
+                    return new DataValue(StatusCode.Good, new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 20:
+                    return new DataValue(default(QualifiedName), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 21:
+                    return new DataValue(new LocalizedText(""), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                case 22:
+                    return new DataValue(new ExtensionObject(), new StatusCode?(StatusCode.Good), new DateTime?(DateTime.Now), null);
+                default:
+                    return null;
+            }
         }
 
         /// <summary>
@@ -780,10 +623,10 @@ namespace SanTint.Opc.Server
                         {
                             if (Convert.ToBoolean(nodeVariable.Value))
                             {
-                                AduReceivedDic[nameof(aduR.RequestAccepted)].Value = false;
-                                AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = true;
-                                MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
-                                MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
+                                _aduReceivedDic[nameof(aduR.RequestAccepted)].Value = false;
+                                _aduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = true;
+                                MonitorNotifyDataChange(_aduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(_aduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+                                MonitorNotifyDataChange(_aduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(_aduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
                                 Logger.Write("服务端准备接收,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
                             }
                             //AddressSpaceTable[node]
@@ -799,12 +642,13 @@ namespace SanTint.Opc.Server
                                 if (CheckAduSendIsOk(aduS))
                                 {
                                     Logger.Write("ADUSent新增数据添加到数据库:" + JsonConvert.SerializeObject(aduS), category: Common.Utility.CategoryLog.Info);
+                                    DBHelper.CheckOrInitSqliteDb();
                                     _dbHelper.AddADUSent(aduS);
 
                                     //接收完成,通知客户端
-                                    AduReceivedDic[nameof(aduR.RequestAccepted)].Value = true;
+                                    _aduReceivedDic[nameof(aduR.RequestAccepted)].Value = true;
                                     //AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value = false;
-                                    MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(AduReceivedDic[nameof(aduR.RequestAccepted)].Value));
+                                    MonitorNotifyDataChange(_aduReceivedDic[nameof(aduR.RequestAccepted)].Id, new DataValue(true));
                                     //MonitorNotifyDataChange(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Id, new DataValue(AduReceivedDic[nameof(aduR.ReadyForNewDosing)].Value));
                                     Logger.Write("ADUSent新增数据添加数据库,并成功通知客户端", category: Common.Utility.CategoryLog.Info);
                                 }
@@ -844,7 +688,7 @@ namespace SanTint.Opc.Server
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
+                    Logger.Write("HandleWriteRequest,出现错误:" + ex.Message, Common.Utility.CategoryLog.Error);
                 }
             }
 
@@ -893,14 +737,14 @@ namespace SanTint.Opc.Server
 
         private ApplicationDescription CreateApplicationDescriptionFromEndpointHint(string endpointUrlHint)
         {
-            string[] discoveryUrls = uaAppDesc.DiscoveryUrls;
+            string[] discoveryUrls = _uaAppDesc.DiscoveryUrls;
             if (discoveryUrls == null && !string.IsNullOrEmpty(endpointUrlHint))
             {
                 discoveryUrls = new string[] { endpointUrlHint };
             }
 
-            return new ApplicationDescription(uaAppDesc.ApplicationUri, uaAppDesc.ProductUri, uaAppDesc.ApplicationName,
-                uaAppDesc.Type, uaAppDesc.GatewayServerUri, uaAppDesc.DiscoveryProfileUri, discoveryUrls);
+            return new ApplicationDescription(_uaAppDesc.ApplicationUri, _uaAppDesc.ProductUri, _uaAppDesc.ApplicationName,
+                _uaAppDesc.Type, _uaAppDesc.GatewayServerUri, _uaAppDesc.DiscoveryProfileUri, discoveryUrls);
         }
 
         public override IList<EndpointDescription> GetEndpointDescriptions(string endpointUrlHint)
@@ -1002,10 +846,13 @@ namespace SanTint.Opc.Server
 
         public void Log(LogLevel Level, string Str)
         {
+            if (Level == LogLevel.Error)
+            {
 #if DEBUG
-            Console.WriteLine("OpcServer:[{0}] {1}", Level.ToString(), Str);
+                Console.WriteLine("OpcServer:[{0}] {1}", Level.ToString(), Str);
 #endif
-            Logger.Write(string.Format("OpcServer:[{0}] {1}", Level.ToString(), Str), Common.Utility.CategoryLog.Info);
+                Logger.Write(string.Format("OpcServer:[{0}] {1}", Level.ToString(), Str), Common.Utility.CategoryLog.Warn);
+            }
         }
     }
 }

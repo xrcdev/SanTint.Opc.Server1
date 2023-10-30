@@ -57,11 +57,11 @@ namespace SanTint.Opc.Server
             var aduReceived = new ADUReceived
             {
                 ProcessOrder = "order1",
-                DateTime = DateTime.Now,
+                DateTime = "",
                 MaterialCode = "1234",
                 ActualQuantity = 50,
                 QuantityUOM = "KG",
-                Lot = 123,
+                Lot = "123",
                 PlantCode = "plant1",
                 DeviceIdentifier = "device1",
                 VesselID = "vessel1",

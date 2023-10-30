@@ -21,7 +21,7 @@ namespace SanTint.Opc.Server.Model
         /// 创建时间
         /// </summary>
         /// <value></value>
-        public DateTime DateTime { get; set; }
+        public string DateTime { get; set; }
 
         /// <summary>
         /// 物料编码
@@ -33,7 +33,7 @@ namespace SanTint.Opc.Server.Model
         /// 计划用量
         /// </summary>
         /// <value></value>
-        public double Quantity { get; set; }
+        public float Quantity { get; set; }
 
         /// <summary>
         /// 单位
@@ -41,7 +41,7 @@ namespace SanTint.Opc.Server.Model
         /// <value></value>
         public string QuantityUOM { get; set; }
 
-        public int Lot { get; set; }
+        public string Lot { get; set; }
 
         public string PlantCode { get; set; }
 

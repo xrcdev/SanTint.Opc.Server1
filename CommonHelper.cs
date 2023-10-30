@@ -10,7 +10,7 @@ namespace SanTint.Opc.Server
     {
         public static string WrapQuote(this string str)
         {
-            return "\"" + str + "\"";
+            return  str  ;
         }
     }
 }
