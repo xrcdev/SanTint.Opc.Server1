@@ -101,6 +101,17 @@ namespace SanTint.Opc.Server
                 received.IsComplete = false;
                 received.ActualQuantity = (Single)Math.Round(received.ActualQuantity, _precision);
                 DBHelper.CheckOrInitSqliteDb();
+
+                var ar = _dbHelper.GetUncompleteADUReceived();
+                while (ar != null && ar.Any())
+                {
+                    var a = ar.First();
+                    a.IsComplete = true;
+                    Logger.Write("FinishOrder收到消息,强制更新完成,Force update:" + a.ProcessOrder, category: Common.Utility.CategoryLog.Error);
+                    _dbHelper.UpdateADUReceived(a);
+                    ar = _dbHelper.GetUncompleteADUReceived();
+                }
+
                 _dbHelper.AddADUReceived(received);
 
                 //添加到队列,定时任务通知客户端

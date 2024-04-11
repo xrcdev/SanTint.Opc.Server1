@@ -255,9 +255,9 @@ namespace SanTint.Opc.Server
                                 }
 
                                 //put a delay of 10 seconds (1) after they have populated the consumption record, to ensure it sync across
-                                Logger.Write("【已收到】OPC Server Received  ConsumptionAccepted=1. delay 10 seconds,to ensure it sync across", category: Common.Utility.CategoryLog.Error);
-                                Thread.Sleep(10000);
-                                Logger.Write("Rested for 10 seconds. then set DosingCompleted=false and notify OPC client ", category: Common.Utility.CategoryLog.Error);
+                                Logger.Write("【已收到】OPC Server Received  ConsumptionAccepted=1 ", category: Common.Utility.CategoryLog.Error);
+                                //Thread.Sleep(10000);
+                                Logger.Write("Set DosingCompleted=false and notify OPC client ", category: Common.Utility.CategoryLog.Error);
                                 _aduReceivedDic[nameof(item.DosingCompleted)].Value = false;
                                 MonitorNotifyDataChange(_aduReceivedDic[nameof(item.DosingCompleted)].Id, new DataValue(_aduReceivedDic[nameof(item.DosingCompleted)].Value));
                                 Logger.Write("Notify client successfully, start next round", category: Common.Utility.CategoryLog.Error);
@@ -278,10 +278,7 @@ namespace SanTint.Opc.Server
                         Logger.Write("检测ADUReceived是否有新数据时,出现异常:" + ex.Message, category: Common.Utility.CategoryLog.Error);
                         Logger.Write(ex, category: Common.Utility.CategoryLog.Error);
                     }
-                    catch (Exception ex1)
-                    {
-
-                    }
+                    catch (Exception) {}
                 }
             }
 

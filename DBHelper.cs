@@ -149,7 +149,7 @@ namespace SanTint.Opc.Server
         {
             var result = new List<ADUReceived>();
             var db = new SQLite.SQLiteConnection(_dbPath);
-            result = db.Query<ADUReceived>($"select * from ADUReceived where  IFNULL(IsComplete,0) = 0  ORDER BY  ID LIMIT 1");
+            result = db.Query<ADUReceived>($"select * from ADUReceived where  IFNULL(IsComplete,0) = 0  ORDER BY  ID Desc LIMIT 1");
             //result = db.Query<ADUSent>("select * from ADUSent where ProcessOrder like '%@ProcessOrderOrMaterialCode%' or MaterialCode like '%@ProcessOrderOrMaterialCode%'", ProcessOrderOrMaterialCode);
             //经测试无法使用参数形式,用于like查询
             return result;
